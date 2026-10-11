@@ -217,8 +217,7 @@ def test_fetch_month_reverifies_hash_and_redownloads(tmp_path: Path, server, mon
 
     _, url = server()
     monkeypatch.setattr(lichess_bulk, "LICHESS_STANDARD", url + "?month={month}")
-    # manifests are CWD-relative (see docs/ISSUES-0002.md P2-1), so pin the CWD to tmp_path
-    monkeypatch.chdir(tmp_path)
+    # the manifest dir is isolated per-test by the autouse fixture in conftest.py
 
     dest = tmp_path / "raw"
     first = lichess_bulk.fetch_month("2013-01", dest)

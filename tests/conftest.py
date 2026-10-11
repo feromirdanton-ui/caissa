@@ -42,3 +42,18 @@ def requiem_1() -> chess.Board:
 @pytest.fixture
 def start_board() -> chess.Board:
     return chess.Board()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_manifest_dir(tmp_path_factory, monkeypatch):
+    """No test may write into the repository's data/manifests/ (Article 14).
+
+    The manifest directory is anchored at the repo root (P2-1), so a test that exercises
+    the loader would otherwise drop a fake manifest into the real tree — a manifest is a
+    certification of truth, not a test artifact. Redirect it to a per-test temp directory.
+    """
+    from caissa.acquisition import manifest as manifest_module
+
+    isolated = tmp_path_factory.mktemp("manifests")
+    monkeypatch.setattr(manifest_module, "MANIFEST_DIR", isolated)
+    return isolated

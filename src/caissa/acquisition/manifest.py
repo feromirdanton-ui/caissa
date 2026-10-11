@@ -30,7 +30,10 @@ def repo_root() -> Path:
     return Path.cwd()
 
 
-MANIFEST_DIR = repo_root() / "data" / "manifests"
+DEFAULT_MANIFEST_DIR = repo_root() / "data" / "manifests"
+# The live anchor. Tests patch this to a temp directory (see tests/conftest.py) so no test
+# can write a manifest into the real tree; DEFAULT_MANIFEST_DIR stays the immutable truth.
+MANIFEST_DIR = DEFAULT_MANIFEST_DIR
 
 
 @dataclass
@@ -51,7 +54,9 @@ class Manifest:
 
 @dataclass
 class ManifestStore:
-    root: Path = MANIFEST_DIR
+    # Resolved at instantiation, not at import: tests redirect MANIFEST_DIR to a temp
+    # directory so no test can drop a manifest into the real data/manifests/ (Article 14).
+    root: Path = field(default_factory=lambda: MANIFEST_DIR)
 
     def path_for(self, name: str) -> Path:
         return self.root / f"{name}.json"

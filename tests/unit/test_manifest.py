@@ -9,11 +9,20 @@ from caissa.acquisition.manifest import Manifest, ManifestStore, sha256_file
 
 def test_manifest_dir_is_anchored_at_repo_root() -> None:
     """P2-1: the manifest anchor is the repo root, not the CWD."""
-    from caissa.acquisition.manifest import MANIFEST_DIR, repo_root
+    from caissa.acquisition.manifest import DEFAULT_MANIFEST_DIR, repo_root
 
     assert (repo_root() / "pyproject.toml").exists()
-    assert repo_root() / "data" / "manifests" == MANIFEST_DIR
-    assert MANIFEST_DIR.is_absolute()
+    assert repo_root() / "data" / "manifests" == DEFAULT_MANIFEST_DIR
+    assert DEFAULT_MANIFEST_DIR.is_absolute()
+
+
+def test_manifest_dir_is_isolated_during_tests() -> None:
+    """Article 14: a test must never write into the repository's data/manifests/."""
+    from caissa.acquisition.manifest import DEFAULT_MANIFEST_DIR, MANIFEST_DIR
+
+    assert (
+        MANIFEST_DIR != DEFAULT_MANIFEST_DIR
+    ), "the autouse isolation fixture in conftest.py is not active"
 
 
 def test_manifest_roundtrip(tmp_path: Path) -> None:

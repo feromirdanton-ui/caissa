@@ -113,6 +113,14 @@ The `.gitignore` was generalized from extension-based to **path-based** (`data/*
 
 - **P2-1** — manifest anchor is now the repository root (`repo_root()` walks up to `pyproject.toml`),
   not the CWD. A test asserts it.
+- **Defect found in my own P2-1 fix, and fixed here.** Making the anchor absolute meant the loader
+  test's `monkeypatch.chdir(tmp_path)` no longer redirected it, so the test wrote a *fake* manifest
+  (`source: http://127.0.0.1:…`) into the real `data/manifests/` — and the new path-based
+  `.gitignore` un-ignored it, so it was committed. That is exactly the Article 14 violation the
+  article exists to prevent. Fixed systemically: `ManifestStore.root` now resolves at
+  instantiation, and an autouse `conftest.py` fixture redirects `MANIFEST_DIR` to a per-test temp
+  directory. A guard test asserts the isolation is active. The fake manifest was removed from the
+  tree and from git.
 - **P2-4** — actions pinned by SHA: `checkout@11bd7190…` (v4.2.2), `setup-python@0b93645e…` (v5.3.0),
   `upload-artifact@b4b15b8c…` (v4.4.3).
 - **ISSUES-0002 registry** adopted into `docs/BACKLOG.md` as the authoritative defect table.

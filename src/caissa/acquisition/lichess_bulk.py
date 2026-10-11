@@ -29,6 +29,7 @@ Range-ignoring-server, stale-part, truncated-body and unverifiable-source cases.
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 from pathlib import Path
 
 import requests
@@ -235,6 +236,115 @@ def fetch_month(
     write_manifest(name, manifest)
     print(f"[lichess] {name}: {manifest.bytes} bytes sha256={manifest.sha256[:12]}…")
     return manifest
+
+
+def _content_range_bounds(header: str) -> tuple[int, int, int | None]:
+    """Parse `Content-Range: bytes 0-99/100` into (first, last, total)."""
+    spec, _, total_text = header[len(_RANGE_PREFIX) :].strip().partition("/")
+    first_text, _, last_text = spec.partition("-")
+    total = int(total_text) if total_text.strip().isdigit() else None
+    return int(first_text), int(last_text), total
+
+
+class _RangeIgnored(Exception):
+    """A stale `.part` whose resume the server would not honour; the caller restarts."""
+
+
+@dataclass
+class PrefixResult:
+    """What one `download_prefix` run actually did — the numbers the resume proof needs."""
+
+    target: Path
+    prefix_bytes: int
+    fetched_bytes: int
+    sha256: str
+    resumed_from: int
+    remote_total: int | None
+    already_complete: bool
+
+
+def download_prefix(
+    url: str, target: Path, prefix_bytes: int, chunk: int = 1 << 20
+) -> PrefixResult:
+    """Download only the FIRST `prefix_bytes` of `url` — resumable, atomic, sha256-certified.
+
+    A month of Lichess is units of GB and its archive is chronological, so its head *is* the
+    start of the month (about a day of play). Downloading a prefix rather than the whole month
+    lets the daily environment prove the pipeline end to end without a GB budget.
+
+    Resume is exact: a `.part` left by a killed run is continued with `Range:\n
+    bytes=<n>-<end>`, and the response is validated (`206` plus a matching `Content-Range`) —
+    a server that ignores `Range` is restarted from zero rather than appended to (P0-2). The
+    prefix is published by an atomic rename and certified by its own sha256; a short body is a
+    loud `IncompleteDownload`, never a published file.
+    """
+    target.parent.mkdir(parents=True, exist_ok=True)
+    part = target.with_suffix(target.suffix + ".part")
+
+    if target.exists() and target.stat().st_size == prefix_bytes:
+        return PrefixResult(target, prefix_bytes, 0, sha256_file(target), prefix_bytes, None, True)
+
+    existing = part.stat().st_size if part.exists() else 0
+    if existing > prefix_bytes:
+        part.unlink()
+        existing = 0
+
+    headers = {"Range": f"bytes={existing}-{prefix_bytes - 1}"}
+    fetched = 0
+    remote_total: int | None = None
+
+    try:
+        with requests.get(url, headers=headers, stream=True, timeout=60) as resp:
+            resp.raise_for_status()
+            status = resp.status_code
+            content_range = resp.headers.get("Content-Range", "")
+            if status == 206 and content_range:
+                # A 206 advertises the resource's true total (`bytes a-b/TOTAL`); that is the
+                # one trustworthy measure of the remote object, recorded rather than assumed.
+                try:
+                    _start, _last, remote_total = _content_range_bounds(content_range)
+                except ValueError:
+                    remote_total = None
+            if existing:
+                if status != 206:
+                    raise _RangeIgnored
+                try:
+                    start, _last, _total = _content_range_bounds(content_range)
+                except ValueError:
+                    raise _RangeIgnored from None
+                if start != existing:
+                    raise _RangeIgnored
+
+            mode = "ab" if existing else "wb"
+            with open(part, mode) as fh:
+                for block in resp.iter_content(chunk_size=chunk):
+                    if not block:
+                        continue
+                    remaining = prefix_bytes - fh.tell()
+                    if remaining <= 0:
+                        break
+                    if len(block) > remaining:
+                        block = block[:remaining]
+                    fh.write(block)
+                    fetched += len(block)
+                    if fh.tell() >= prefix_bytes:
+                        break
+    except _RangeIgnored:
+        # The server ignored the Range (or answered for a different offset). Appending would
+        # corrupt the file, so the stale .part is dropped and the download restarts cleanly.
+        part.unlink(missing_ok=True)
+        return download_prefix(url, target, prefix_bytes, chunk)
+
+    written = part.stat().st_size
+    if written != prefix_bytes:
+        raise IncompleteDownload(
+            f"{part.name}: {written} bytes of the requested {prefix_bytes}-byte prefix; "
+            "keeping the .part so the next run resumes at exactly this offset."
+        )
+    part.replace(target)
+    return PrefixResult(
+        target, prefix_bytes, fetched, sha256_file(target), existing, remote_total, False
+    )
 
 
 def main(argv: list[str] | None = None) -> int:

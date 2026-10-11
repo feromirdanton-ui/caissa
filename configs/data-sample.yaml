@@ -1,5 +1,14 @@
-# data-sample — Phase 1 DoD: a month of Lichess + 1000 puzzles + a TWIC month.
+# data-sample — Phase 1 DoD: a day of Lichess bulk + 1000 puzzles + a TWIC month.
+#
+# The directive's minimum: "one day of Lichess bulk + 1000 puzzles + one TWIC month".
+# A full Lichess month is only pulled when the environment has the gigabytes; the reference
+# month is 2013-01 (~18 MB compressed, the smallest), and the day-sample is taken as the
+# FIRST `lichess_prefix_bytes` of that archive — the archive is chronological, so its head is
+# the start of the month. The exact byte count is recorded in the QA-lite report.
 lichess_month: "2013-01"
-puzzles: 1000
-twic_month: "2024-01"
+lichess_prefix_bytes: 8388608   # 8 MiB ≈ well over a day of 2013 play; the honest minimum
+puzzles_limit: 1000             # puzzles kept in the QA-lite sample (the archive is ~300 MB)
+twic_month: "2024-01"           # measured by Last-Modified, not guessed by number
+twic_max_issues: 1              # one weekly issue for the sample; full month on request
+disk_quota_gb: 1.0              # refuse to start below this (GOAL.md §6.6)
 resume: true

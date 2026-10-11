@@ -235,3 +235,69 @@ def test_fetch_month_reverifies_hash_and_redownloads(tmp_path: Path, server, mon
     before = local.stat().st_mtime_ns
     lichess_bulk.fetch_month("2013-01", dest)
     assert local.stat().st_mtime_ns == before
+
+
+def test_truncated_body_without_trusted_length_is_not_certified(
+    tmp_path: Path, server, monkeypatch
+) -> None:
+    """A short body must never be certified complete when nothing contradicts it.
+
+    Here the source is doubly untrustworthy: `HEAD` fails (500) so no `Content-Length` is
+    known, and the `GET` body is half the real resource. Nothing in the response contradicts
+    the truncation, so the only honest outcomes are (a) verify against a trusted reference or
+    (b) refuse. Publishing the short file and writing a manifest for it is a *false
+    certification* \u2014 the Article 14 violation that motivated the session-0003 audit.
+    """
+    from caissa.acquisition import lichess_bulk
+
+    _, url = server(truncate=True, head_ok=False)
+    monkeypatch.setattr(lichess_bulk, "LICHESS_STANDARD", url + "?month={month}")
+
+    written: list[str] = []
+    real_write = lichess_bulk.write_manifest
+    monkeypatch.setattr(
+        lichess_bulk,
+        "write_manifest",
+        lambda name, m: written.append(name) or real_write(name, m),
+    )
+
+    dest = tmp_path / "raw"
+    with pytest.raises(lichess_bulk.UnverifiableDownload):
+        lichess_bulk.fetch_month("2013-01", dest)
+
+    local = dest / "lichess_db_standard_rated_2013-01.pgn.zst"
+    assert not local.exists(), "a short body must not be published as a complete shard"
+    assert written == [], "a manifest must never certify an unverified body (Article 14)"
+
+
+def test_trusted_reference_certifies_a_body_the_server_will_not_measure(
+    tmp_path: Path, server, monkeypatch
+) -> None:
+    """When the server cannot be trusted to measure, an out-of-band size certifies the body.
+
+    This is the Lichess-bulk shape once a manifest carries the published volume: the download
+    is accepted only because it matches a reference obtained *before* the resource, so a
+    truncated body is still caught — but now by us, not by the server. Each case uses its own
+    destination so a kept `.part` from one case cannot leak into the next.
+    """
+    from caissa.acquisition import lichess_bulk
+
+    _, url = server(head_ok=False)  # full body, but HEAD fails -> the server cannot measure
+    monkeypatch.setattr(lichess_bulk, "LICHESS_STANDARD", url + "?month={month}")
+
+    # (a) no reference at all -> refuse rather than certify the unmeasurable
+    with pytest.raises(lichess_bulk.UnverifiableDownload):
+        lichess_bulk.fetch_month("2013-01", tmp_path / "unref")
+
+    # (b) a reference that contradicts the body -> refuse
+    with pytest.raises(lichess_bulk.UnverifiableDownload):
+        lichess_bulk.fetch_month("2013-01", tmp_path / "badref", expected_bytes=len(PAYLOAD) + 1)
+
+    # (c) a reference that agrees -> accept and record it
+    manifest = lichess_bulk.fetch_month(
+        "2013-01", tmp_path / "goodref", expected_bytes=len(PAYLOAD)
+    )
+    local = tmp_path / "goodref" / "lichess_db_standard_rated_2013-01.pgn.zst"
+    assert local.read_bytes() == PAYLOAD
+    assert manifest.bytes == len(PAYLOAD)
+    assert manifest.sha256 == _sha()

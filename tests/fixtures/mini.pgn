@@ -7,6 +7,8 @@
 [WhiteElo "1800"]
 [BlackElo "1850"]
 [TimeControl "300+0"]
+[Opening "Sicilian Defence"]
+[ECO "B20"]
 
 1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6
 8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 1-0
@@ -20,6 +22,8 @@
 [WhiteElo "2100"]
 [BlackElo "2050"]
 [TimeControl "600+0"]
+[Opening "Queen's Gambit Declined"]
+[ECO "D37"]
 
 1. d4 d5 2. c4 e6 3. Nc3 Nf6 4. cxd5 exd5 5. Bg5 Be7 6. e3 O-O 7. Bd3 Nbd7
 8. Nf3 Re8 9. Qc2 c6 10. O-O Nf8 0-1

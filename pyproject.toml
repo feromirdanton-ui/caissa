@@ -41,7 +41,8 @@ torch = ["torch>=2.2"]
 
 [project.scripts]
 caissa-download = "caissa.acquisition.cli:main"
-caissa-shard = "caissa.processing.cli:main"
+caissa-shard = "caissa.processing.cli:shard_main"
+caissa-label = "caissa.processing.cli:label_main"
 caissa-eval = "caissa.eval.cli:main"
 
 [tool.setuptools.packages.find]

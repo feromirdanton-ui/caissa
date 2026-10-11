@@ -1,0 +1,75 @@
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/good0001"]
+[Date "2024.01.03"]
+[White "Eve"]
+[Black "Frank"]
+[Result "1/2-1/2"]
+[WhiteElo "1500"]
+[BlackElo "1520"]
+[TimeControl "180+2"]
+
+1. e4 c5 2. Nf3 d6 3. d4 cxd4 4. Nxd4 Nf6 1/2-1/2
+
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/bad00002"]
+[Date "2024.01.04"]
+[White "Grace"]
+[Black "Heidi"]
+[Result "1-0"]
+[WhiteElo "1600"]
+[BlackElo "1610"]
+[TimeControl "300+0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6
+8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 1-0
+
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/dup00003"]
+[Date "2024.01.05"]
+[White "Ivan"]
+[Black "Judy"]
+[Result "0-1"]
+[WhiteElo "1700"]
+[BlackElo "1710"]
+[TimeControl "300+0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6
+8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 0-1
+
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/dup00003"]
+[Date "2024.01.05"]
+[White "Ivan"]
+[Black "Judy"]
+[Result "0-1"]
+[WhiteElo "1700"]
+[BlackElo "1710"]
+[TimeControl "300+0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 d6
+8. c3 O-O 9. h3 Nb8 10. d4 Nbd7 0-1
+
+[Event "Rated Blitz game"]
+[Site "https://lichess.org/variant04"]
+[Date "2024.01.06"]
+[White "Karl"]
+[Black "Laura"]
+[Result "1-0"]
+[WhiteElo "1900"]
+[BlackElo "1910"]
+[TimeControl "300+0"]
+[Variant "Chess960"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 1-0
+
+[Event "Casual game"]
+[Site "https://lichess.org/casual05"]
+[Date "2024.01.07"]
+[White "Mallory"]
+[Black "Niaj"]
+[Result "1-0"]
+[WhiteElo "1400"]
+[BlackElo "1410"]
+[TimeControl "300+0"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 1-0

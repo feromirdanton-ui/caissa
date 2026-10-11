@@ -9,7 +9,7 @@ POSIX shell, so it runs on Windows, macOS and Linux alike.
 Usage:
     python scripts/run.py <target> [--config PATH] [-- ...extra args]
 
-Targets: help install lint format test smoke data data-sample eval train ci clean
+Targets: help install lint format test smoke data data-sample processing label eval train ci clean
 """
 
 from __future__ import annotations
@@ -89,6 +89,41 @@ def t_data_sample(args: argparse.Namespace) -> int:
     return _run(_module("caissa.acquisition.sample", "--config", args.config))
 
 
+def t_processing(args: argparse.Namespace) -> int:
+    """Phase 2: stream a PGN -> filter -> dedup -> shard -> QA report."""
+    return _run(
+        _module(
+            "caissa.processing.cli",
+            args.pgn,
+            "--out",
+            args.out,
+            "--qa",
+            args.qa,
+            "--shard-size",
+            str(args.shard_size),
+            *(["--lenient"] if args.lenient else []),
+            *(["--truncated-ok"] if args.truncated_ok else []),
+        )
+    )
+
+
+def t_label(args: argparse.Namespace) -> int:
+    """Phase 2: blunder labeling over a PGN (Stockfish when present, else MOCK)."""
+    return _run(
+        _module(
+            "caissa.processing.cli",
+            "--label",
+            args.pgn,
+            "--limit",
+            str(args.limit),
+            "--out",
+            args.qa,
+            "--engine",
+            args.engine,
+        )
+    )
+
+
 def t_eval(args: argparse.Namespace) -> int:
     return _run(_module("caissa.eval.arena", "--config", args.config))
 
@@ -127,6 +162,8 @@ TARGETS = {
     "smoke": t_smoke,
     "data": t_data,
     "data-sample": t_data_sample,
+    "processing": t_processing,
+    "label": t_label,
     "eval": t_eval,
     "train": t_train,
     "ci": t_ci,
@@ -138,6 +175,14 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Caïssa-1 command runner (ADR-0005)")
     parser.add_argument("target", nargs="?", default="help", choices=sorted(TARGETS))
     parser.add_argument("--config", default=DEFAULT_CONFIG, help="config file for the target")
+    parser.add_argument("--pgn", default="data/raw/lichess/lichess_day_2013-01.pgn.zst")
+    parser.add_argument("--out", default="data/shards")
+    parser.add_argument("--qa", default="data/qa/processing.json")
+    parser.add_argument("--shard-size", type=int, default=10_000)
+    parser.add_argument("--limit", type=int, default=10_000)
+    parser.add_argument("--engine", default="auto", choices=["auto", "mock", "stockfish"])
+    parser.add_argument("--lenient", action="store_true")
+    parser.add_argument("--truncated-ok", action="store_true")
     args = parser.parse_args(argv)
     return TARGETS[args.target](args)
 

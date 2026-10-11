@@ -9,9 +9,14 @@
 SHELL := /bin/bash
 PY ?= python
 CONFIG ?= configs/tiny.yaml
+PGN ?= data/raw/lichess/lichess_day_2013-01.pgn.zst
+OUT ?= data/shards
+QA ?= data/qa/processing.json
+LIMIT ?= 10000
+ENGINE ?= auto
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint format test smoke data data-sample eval train clean ci
+.PHONY: help install lint format test smoke data data-sample processing label eval train clean ci
 
 help: ## Show this help
 	@$(PY) scripts/run.py help
@@ -36,6 +41,12 @@ data: ## Show the data manifest status (no download)
 
 data-sample: ## Phase 1 DoD: pull a month of Lichess + 1000 puzzles + a TWIC month (resumable)
 	@$(PY) scripts/run.py data-sample --config configs/data-sample.yaml
+
+processing: ## Phase 2: stream a PGN -> filter -> dedup -> shard -> QA report
+	@$(PY) scripts/run.py processing --pgn $(PGN) --out $(OUT) --qa $(QA)
+
+label: ## Phase 2: blunder labeling (Stockfish when present, else MOCK)
+	@$(PY) scripts/run.py label --pgn $(PGN) --limit $(LIMIT) --engine $(ENGINE)
 
 eval: ## Arena stub + blunder-rate report (mock engine unless STOCKFISH set)
 	@$(PY) scripts/run.py eval --config configs/eval.yaml

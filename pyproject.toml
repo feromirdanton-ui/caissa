@@ -50,6 +50,10 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+# ADR-0007 (ghost protection): pytest must import caissa from THIS checkout's src/, never
+# from whatever a previous `pip install -e` happened to leave on sys.path. With this on,
+# a stale editable install in site-packages cannot satisfy the import first.
+pythonpath = ["src"]
 markers = [
   "network: tests that require network access (deselected by default in CI)",
   "slow: long-running tests",

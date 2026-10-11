@@ -1,13 +1,13 @@
-"""The labeling economy — cache, timeout, checkpoints, honest ETA (session-0008, fast lane).
+"""The labeling economy: cache, timeout, checkpoints, honest ETA (session-0008, fast lane).
 
 Session-0007 left the real-Stockfish labeling job running far longer than a CI budget. This is the
-fast-lane answer: prove — offline, deterministically — that
+fast-lane answer: prove, offline and deterministically, that
 
   1. one engine call is made per **distinct position** (the before/after of adjacent plies is the
      same position, so the cache nearly halves the work);
   2. a timeout **stops and says so** in the report rather than truncating silently;
-  3. a long run writes **checkpoints**, so a failure at minute 41 does not lose minutes 1–40;
-  4. an ETA is derived from a **measured** rate, and is ``None`` — not a guess — before any
+  3. a long run writes **checkpoints**, so a failure at minute 41 does not lose minutes 1-40;
+  4. an ETA is derived from a **measured** rate, and is ``None`` (not a guess) before any
      measurement exists.
 
 None of this needs Stockfish: the engine is a counting test double, so the numbers the assertions
@@ -58,11 +58,11 @@ LINE = ["e2e4", "e7e5", "g1f3", "b8c6", "f1b5", "a7a6", "b5a4", "g8f6", "e1g1", 
 
 
 def test_one_engine_call_per_distinct_position() -> None:
-    """The cache must evaluate a position once — not twice (‘after’ of ply i == ‘before’ of i+1)."""
+    """The cache must evaluate a position once, not twice ('after' of ply i == 'before' of i+1)."""
     engine = CountingEngine()
     report = label_games([_game(LINE)], engine, limit=1000)
 
-    # 10 plies → 11 distinct positions evaluated, 10 moves labeled.
+    # 10 plies -> 11 distinct positions evaluated, 10 moves labeled.
     assert report.positions == 10
     assert report.engine_calls == 11, f"expected one call per position, got {report.engine_calls}"
     assert report.cache_hits == 9, "each labeled ply after the first should reuse a cached position"
@@ -82,7 +82,7 @@ def test_cache_counts_hits_and_misses() -> None:
 
 
 def test_timeout_stops_and_says_so() -> None:
-    """A timeout must produce a PARTIAL report that admits it — never a silent truncation."""
+    """A timeout must produce a PARTIAL report that admits it, never a silent truncation."""
     engine = CountingEngine()
     report = label_games([_game(LINE)], engine, limit=1000, timeout_s=0.0)
 

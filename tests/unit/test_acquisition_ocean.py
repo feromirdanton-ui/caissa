@@ -5,6 +5,8 @@ modes are silent (§3 Article 4, Article 14):
 
 - ``puzzles`` — download + one-pass scan + sample + manifest certifying the written file;
 - ``twic`` — month discovery by *measured* ``Last-Modified``, not a guessed number;
+- every outbound request carries an identifying ``User-Agent`` — the site answers the
+  default ``python-requests`` one with HTTP 406 (the first clean-runner failure, session-0005);
 - ``download_prefix`` — a resumable partial download whose resume re-fetches only the tail,
   and which restarts cleanly when the server ignores ``Range``.
 """
@@ -19,6 +21,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import pytest
+import requests
 import zstandard as zstd
 
 from caissa.acquisition import lichess_bulk, puzzles, twic
@@ -300,3 +303,80 @@ def test_prefix_restarts_when_the_server_ignores_range(tmp_path: Path, server) -
     assert target.stat().st_size == 100_000, "an oversized corrupt file must not be published"
     assert target.read_bytes() == payload[:100_000]
     assert result.sha256 == hashlib.sha256(payload[:100_000]).hexdigest()
+
+
+# --- outbound identity (session-0005: the clean-runner 406) --------------------
+
+
+def test_every_outbound_request_identifies_itself(tmp_path: Path, server, monkeypatch) -> None:
+    """A request without a User-Agent is what the TWIC site answers with HTTP 406.
+
+    The local fixture, like a static file server, answers every client, so this stayed
+    invisible for the whole build and only surfaced on the first clean-runner run. The
+    regression is cheap: assert that every request the loaders send carries the identity.
+    """
+    from caissa.acquisition.http import USER_AGENT
+
+    class _RecordingHandler(_Handler):
+        agents: list[str | None] = []
+
+        def do_HEAD(self) -> None:  # noqa: N802 (http.server API)
+            type(self).agents.append(self.headers.get("User-Agent"))
+            super().do_HEAD()
+
+        def do_GET(self) -> None:  # noqa: N802 (http.server API)
+            type(self).agents.append(self.headers.get("User-Agent"))
+            super().do_GET()
+
+    body = _payload(120_000)
+    cls = type(
+        "Handler",
+        (_RecordingHandler,),
+        {
+            "routes": {
+                "/shard.bin": (body, "Fri, 04 Nov 2022 16:10:48 GMT"),
+                "/prefix.bin": (body, "Fri, 04 Nov 2022 16:10:48 GMT"),
+                "/twic.zip": (body, "Mon, 08 Jan 2024 00:00:00 GMT"),
+            },
+            "ignore_range": False,
+            "seen": [],
+            "agents": [],
+        },
+    )
+    httpd = ThreadingHTTPServer(("127.0.0.1", 0), cls)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        base = f"http://127.0.0.1:{httpd.server_address[1]}"
+        lichess_bulk.download(base + "/shard.bin", tmp_path / "shard.bin")  # HEAD + GET
+        download_prefix(base + "/prefix.bin", tmp_path / "prefix.bin", 100_000)  # GET
+        monkeypatch.setattr(twic, "TWIC_ZIP", base + "/twic.zip")
+        twic._probe(1500, requests.Session(), 0.0)  # HEAD, a bare session
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+    assert cls.agents, "the fixture was never reached"
+    assert all(agent == USER_AGENT for agent in cls.agents), (
+        f"every outbound request must carry the User-Agent; saw {cls.agents}"
+    )
+
+
+@pytest.mark.network
+def test_twic_anchor_is_still_honest() -> None:
+    """The TWIC anchor (issue 1500 -> 2023-08-08) must still be true on the live site.
+
+    Deselected by default (`-m "not network"`). Run it when the anchor is in doubt: if the
+    issue's real Last-Modified has moved, update ANCHOR_DATE rather than quietly widening the
+    window, so the constant stays a measurement and not a memory (ADR-0006).
+    """
+    import datetime
+
+    from caissa.acquisition.twic import ANCHOR_ISSUE, _probe
+
+    facts = _probe(ANCHOR_ISSUE, requests.Session(), 0.0)
+    assert facts is not None, f"issue {ANCHOR_ISSUE} is not served anymore"
+    assert facts["last_modified"], "the site stopped sending Last-Modified; discovery broke"
+    assert datetime.date.fromisoformat(facts["last_modified"]) == datetime.date(2023, 8, 8), (
+        f"the anchor drifted: issue {ANCHOR_ISSUE} is now {facts['last_modified']}; "
+        "update ANCHOR_DATE in twic.py (and this test)"
+    )

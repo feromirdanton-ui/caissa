@@ -30,6 +30,7 @@ from pathlib import Path
 
 import requests
 
+from caissa.acquisition.http import USER_AGENT
 from caissa.acquisition.lichess_bulk import download
 from caissa.acquisition.manifest import Manifest, sha256_file, write_manifest
 
@@ -59,7 +60,9 @@ def _probe(issue: int, session: requests.Session, pause: float) -> dict | None:
     url = TWIC_ZIP.format(n=issue)
     time.sleep(pause)  # public site: pauses between requests (Article §6.6)
     try:
-        resp = session.head(url, allow_redirects=True, timeout=30)
+        resp = session.head(
+            url, headers={"User-Agent": USER_AGENT}, allow_redirects=True, timeout=30
+        )
     except requests.RequestException:
         return None
     if resp.status_code != 200:
@@ -144,7 +147,9 @@ def fetch_twic_month(
         raise RuntimeError(
             f"[twic] no issues dated {year_month} were found within the probe window "
             f"(anchor {ANCHOR_ISSUE}->{ANCHOR_DATE}, measured 2026-10-11). "
-            "Widen the window or check the site; nothing was recorded."
+            "The site answers the default python-requests User-Agent with HTTP 406; this "
+            "loader sends one. If the window still found nothing, widen it or check the site. "
+            "Nothing was recorded."
         )
 
     total_games = 0

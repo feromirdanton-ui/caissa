@@ -34,6 +34,7 @@ from pathlib import Path
 
 import requests
 
+from caissa.acquisition.http import USER_AGENT
 from caissa.acquisition.manifest import Manifest, ManifestStore, sha256_file, write_manifest
 
 LICHESS_STANDARD = "https://database.lichess.org/standard/lichess_db_standard_rated_{month}.pgn.zst"
@@ -57,7 +58,9 @@ class UnverifiableDownload(IncompleteDownload):
 def _remote_size(url: str) -> int | None:
     """Advertised length of the resource, or None when the server will not say."""
     try:
-        resp = requests.head(url, allow_redirects=True, timeout=30)
+        resp = requests.head(
+            url, headers={"User-Agent": USER_AGENT}, allow_redirects=True, timeout=30
+        )
     except requests.RequestException:
         return None
     if resp.status_code != 200:
@@ -142,6 +145,7 @@ def download(
             return target
 
     headers = {"Range": f"bytes={existing}-"} if existing else {}
+    headers["User-Agent"] = USER_AGENT
     mode = "ab" if existing else "wb"
 
     with requests.get(url, headers=headers, stream=True, timeout=60) as resp:
@@ -272,8 +276,9 @@ def download_prefix(
     start of the month (about a day of play). Downloading a prefix rather than the whole month
     lets the daily environment prove the pipeline end to end without a GB budget.
 
-    Resume is exact: a `.part` left by a killed run is continued with `Range:\n
-    bytes=<n>-<end>`, and the response is validated (`206` plus a matching `Content-Range`) —
+    Resume is exact: a `.part` left by a killed run is continued with
+    ``Range: bytes=<n>-<end>``, and the response is validated (``206`` plus a matching
+    `Content-Range`) —
     a server that ignores `Range` is restarted from zero rather than appended to (P0-2). The
     prefix is published by an atomic rename and certified by its own sha256; a short body is a
     loud `IncompleteDownload`, never a published file.
@@ -289,7 +294,7 @@ def download_prefix(
         part.unlink()
         existing = 0
 
-    headers = {"Range": f"bytes={existing}-{prefix_bytes - 1}"}
+    headers = {"Range": f"bytes={existing}-{prefix_bytes - 1}", "User-Agent": USER_AGENT}
     fetched = 0
     remote_total: int | None = None
 

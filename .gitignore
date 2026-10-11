@@ -1,13 +1,14 @@
 # --- Data & weights: NEVER in git (GOAL.md Article 8) ---
+# Path-based, not extension-based (session-0003, generalizing the session-0002 P0-1 fix):
+# a file is data because of WHERE it lives, not what it is called. Ignoring by
+# extension silently drops source files from a fresh clone — the exact failure
+# that made v1 "green locally, red on a clone".
 data/**
 !data/.gitkeep
 !data/manifests/
 !data/manifests/**
-*.zst
-*.pgn
-# …but the tiny hand-written test fixture is source, not data (session-0002 P0-1):
-!tests/fixtures/*.pgn
-*.pgn.zst
+
+# Weights and binary artifacts are never source, wherever they live.
 *.bin
 *.nnue
 *.pt
@@ -15,6 +16,7 @@ data/**
 *.safetensors
 *.ckpt
 *.part
+*.zst
 
 # --- Python ---
 __pycache__/

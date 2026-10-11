@@ -18,7 +18,8 @@
   - [x] `pyproject.toml`, `.pre-commit-config.yaml`
   - [x] `.github/workflows/ci.yml` triggers on push
   - [x] `make lint test` green *(session-0002: green from the delivered zip, RED from a real clone — P0-1)*
-- **Artifacts:** repo tree. *(session-0002: no CI run exists — the delivery has no `.git`, so no workflow has ever executed; P0-3)*
+  - [x] **green CI run from a fresh clone** *(session-0003: ci.yml run 38110618393, SUCCESS)*
+- **Artifacts:** repo tree. *(session-0003: repository `feromirdanton-ui/caissa`, initial commit `defec25`)*
 - **Failure criterion:** CI red, or a required target missing.
 
 ## Issue #2 — docs/MANIFEST.md (concept manifest)
@@ -132,3 +133,24 @@
   - [ ] blunder-rate metric defined
 - **Artifacts:** `src/caissa/eval/arena.py`, report.
 - **Failure criterion:** a mock result presented as a real strength result.
+
+---
+
+## Session-0002 audit registry (adopted, session-0003)
+
+> The external acceptance audit of Phase 0 (`docs/ISSUES-0002.md`) is adopted into the backlog as
+> the authoritative defect registry. Status as of session-0003.
+
+| ID | Severity | Finding | Status |
+|---|---|---|---|
+| P0-1 | P0 | `tests/fixtures/mini.pgn` was gitignored → a fresh clone could not run the suite | **Fixed** (v2) + **generalized** (session-0003: `.gitignore` is now path-based, not extension-based) |
+| P0-2 | P0 | the downloader recorded a manifest for a corrupt/partial file (silent `200` instead of `206`) | **Fixed** (v2) — range response validated, `416` handled loudly |
+| P0-3 | P0 | no repository, no CI run — "green" was never proven on a runner | **Fixed** (session-0003: repo created, ci.yml + nightly.yml green) |
+| P1-2 | P1 | sha256 not re-verified on later runs | **Fixed** (v2) |
+| P1-7 | P1 | Requiem-1 FEN duplicated in the test instead of parsed from GOAL.md §8 | **Fixed** (v2) — parsed from the constitution, fails loudly if §8 changes shape |
+| P2-1 | P2 | manifest anchor was the CWD, not the repo root | **Fixed** (session-0003) |
+| P2-4 | P2 | actions referenced by mutable tags | **Fixed** (session-0003) — pinned by commit SHA (ADR-0005) |
+
+**Open (not yet closed):** Issue #4 "completed shard skipped on re-run", Issue #5 generator parser,
+Issue #6 sharding + QA, Issue #7 property tests, Issue #8 tiny model, Issue #9 guard v0, Issue #10
+arena stub. These are Phase 1+ work and are **not** part of the Phase 0 acceptance request.

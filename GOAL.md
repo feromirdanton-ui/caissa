@@ -54,7 +54,7 @@ generating "training results".
 **Main criterion of the whole phase (Definition of Awesome):** an engineer with a cluster does
 `git clone && make train CONFIG=configs/nano.yaml` — and Act I starts.
 
-## 3. Constitution — ten articles
+## 3. Constitution — fourteen articles
 
 1. **Zero illegal moves** — architecturally. Legality mask in the softmax. Single source of truth
    for rules — python-chess. No custom rules.
@@ -70,6 +70,16 @@ generating "training results".
 8. **Data outside git.** In the repo — only manifests: source, sha256, volume, schema, rows.
 9. **One task at a time:** branch → tests → CI → merge → log. No half-done merges.
 10. **GOAL is the constitution.** Drift is stopped by re-reading, not by improvisation.
+11. **The repository is the single source of truth for code** (ADR-0004, Article A). Commits,
+    branches, tags, releases, history. A zip is only a release attachment to a tag. The workspace
+    is a draft. Actions without a repository is a guard without a fortress.
+12. **Local run = dev-proof. Green CI on the runner from a fresh clone = acceptance proof**
+    (ADR-0004, Article B; ADR-0003). A phase closes only on the second.
+13. **Phase closure: green run + tag + LOG + human signature** (ADR-0004, Article C). The agent
+    *requests* acceptance — it does not declare it.
+14. **The manifest is a certification of truth, not a journal** (ADR-0004, Article D). A record is
+    created only after verifying the sha256 of the written file; a `200`-instead-of-`206` and a
+    `416` are loud failures, never silent records.
 
 ## 4. Target architecture
 

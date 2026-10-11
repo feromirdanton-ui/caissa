@@ -7,6 +7,15 @@ from pathlib import Path
 from caissa.acquisition.manifest import Manifest, ManifestStore, sha256_file
 
 
+def test_manifest_dir_is_anchored_at_repo_root() -> None:
+    """P2-1: the manifest anchor is the repo root, not the CWD."""
+    from caissa.acquisition.manifest import MANIFEST_DIR, repo_root
+
+    assert (repo_root() / "pyproject.toml").exists()
+    assert repo_root() / "data" / "manifests" == MANIFEST_DIR
+    assert MANIFEST_DIR.is_absolute()
+
+
 def test_manifest_roundtrip(tmp_path: Path) -> None:
     store = ManifestStore(root=tmp_path)
     m = Manifest(source="https://example.org/x.zst", sha256="abc", bytes=10, schema="pgn.zst")

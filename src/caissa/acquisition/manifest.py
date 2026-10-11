@@ -16,6 +16,23 @@ from pathlib import Path
 MANIFEST_DIR = Path("data/manifests")
 
 
+def repo_root() -> Path:
+    """The repository root — the anchor for all data paths (session-0003, P2-1).
+
+    Manifests must not depend on the current working directory: a run from
+    ``tools/`` and a run from the repo root must resolve to the same file. We walk
+    up from this module until we find ``pyproject.toml``; if we cannot (e.g. a
+    non-editable install), we fall back to the CWD.
+    """
+    for parent in Path(__file__).resolve().parents:
+        if (parent / "pyproject.toml").exists():
+            return parent
+    return Path.cwd()
+
+
+MANIFEST_DIR = repo_root() / "data" / "manifests"
+
+
 @dataclass
 class Manifest:
     source: str

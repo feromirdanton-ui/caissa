@@ -112,7 +112,7 @@ def t_label(args: argparse.Namespace) -> int:
     return _run(
         _module(
             "caissa.processing.cli",
-            "--label",
+            "label",
             args.pgn,
             "--limit",
             str(args.limit),

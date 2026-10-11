@@ -79,14 +79,16 @@ jobs:
             --truncated-ok
 
       - name: Blunder labeling (Stockfish when present, else MOCK — labeled)
+        # No `|| true`: a labeling failure must fail the run. Masking it would be a
+        # silent false success — the exact class Article 5 forbids.
         run: |
           python scripts/run.py label \
             --pgn data/raw/lichess/lichess_day_${{ inputs.lichess_month }}.pgn.zst \
             --limit 10000 \
             --engine auto \
-            --qa data/qa/labels.json || true
+            --qa data/qa/labels.json
           echo "=== labels (head) ==="
-          python -m json.tool data/qa/labels.json 2>/dev/null | head -40 || echo "no label report"
+          python -m json.tool data/qa/labels.json | head -40
 
       - name: Verify every shard sha256 against the file on disk
         run: |

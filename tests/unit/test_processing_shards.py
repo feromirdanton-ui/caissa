@@ -94,3 +94,30 @@ def test_label_games_reports_mock_honestly() -> None:
     assert report.positions > 0
     assert report.is_mock is True
     assert "MOCK" in report.to_markdown(), "a mock report must say so"
+
+
+def test_cli_dispatch_routes_label_subcommand(tmp_path: Path) -> None:
+    """`caissa-label` must route to the labeler, not the sharder.
+
+    The first processing-sample run on the runner exposed this: run.py passed `--label`
+    as a flag, the dispatcher expected the `label` subcommand, and the labeler never ran
+    while `|| true` hid the failure. This test pins the routing.
+    """
+    from caissa.processing.cli import main
+
+    out = tmp_path / "labels.json"
+    rc = main(["label", str(MINI), "--limit", "20", "--engine", "mock", "--out", str(out)])
+    assert rc == 0
+    payload = json.loads(out.read_text())
+    assert payload["mock"] is True
+    assert payload["positions"] > 0
+
+
+def test_cli_dispatch_defaults_to_shard(tmp_path: Path) -> None:
+    from caissa.processing.cli import main
+
+    out = tmp_path / "shards"
+    qa = tmp_path / "qa.json"
+    rc = main([str(MINI), "--out", str(out), "--qa", str(qa), "--shard-size", "10"])
+    assert rc == 0
+    assert json.loads(qa.read_text())["kept"] == 2

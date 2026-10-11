@@ -1,0 +1,14 @@
+# Silence-guard allowlist — every entry needs a reason (ADR-0011 fast lane; GOAL.md Article 5/7).
+#
+# A silent failure in CI is the one failure mode this project cannot tolerate: a red run that
+# reports green is worse than a red run. `tests/unit/test_ci_silence_guard.py` scans the tree for
+# the idioms that swallow a failure and fails unless the hit is listed here with a justification.
+#
+# Format (one entry per line, '|'-separated):
+#     <path>|<pattern-id>|<justification>
+#
+# A justification must say WHY the swallow is safe — never "it's fine" or "temporary".
+#
+# ---------------------------------------------------------------------------------------------
+# (empty — every swallow found is a defect until justified here)
+# ---------------------------------------------------------------------------------------------

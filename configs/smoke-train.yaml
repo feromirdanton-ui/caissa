@@ -1,0 +1,30 @@
+# smoke-train — the deep-lane experiment of the «Vertical» milestone (ADR-0011).
+#
+# Trains the REAL tiny model on positions from REAL rated standard Lichess games (the day-prefix
+# shards of Phase 2), and records the metrics that decide the PRE-REGISTERED criterion in
+# LOG/session-0007-preregistration.md. The criterion is not configurable here on purpose: a
+# threshold in a config is a threshold that can be moved after seeing the numbers.
+#
+# Weights are a disposable run artifact — never a git object (Article 8).
+scale: tiny
+lane: deep
+shards: data/shards
+metrics: data/qa/metrics.json
+val_fraction: 0.05      # split BY GAME, so no game straddles train and val
+seed: 0
+max_train_positions: 30000
+max_val_positions: 2000
+epochs: 2
+# lr corrected 2026-10-12 during session-0007, BEFORE the runner dispatch. The first local probe
+# on REAL shards used lr=1.0 and the model DIVERGED (train loss 7.9 -> 8.8, val loss 3.43 -> 14.7).
+# A sweep on the same shards (0.2 / 0.05 / 0.01) showed only the high rates diverge:
+#   lr=1.0 -> DEAD (diverge) · lr=0.2 -> DEAD (val still rising) · lr=0.05 -> ALIVE · lr=0.01 -> ALIVE
+# This is a hyperparameter fix, NOT a criterion change: the pre-registered criterion in
+# LOG/session-0007-preregistration.md is untouched. Recorded because a hidden lr tweak after
+# seeing the numbers would be exactly the retouching ADR-0011 §5 forbids.
+lr: 0.05
+sample_moves: 1000      # the Article 1 gate: these must be 100% legal
+budget_minutes: 60      # a runner constraint, stated rather than silently truncated
+model:
+  name: numpy_tiny      # CPU-only, no torch required on the runner
+  geometric_bias: false # ablation flag (GOAL.md §4.2); off = the unbiased baseline

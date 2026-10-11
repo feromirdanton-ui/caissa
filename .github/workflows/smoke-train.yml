@@ -1,0 +1,186 @@
+name: smoke-train
+
+# The deep lane of the «Vertical» milestone (ADR-0011): one real experiment that exercises the
+# COMPOSITION on real data — data-sample → shards → train → metrics — and a parallel fast-lane job
+# that closes the Phase 2 MOCK debt by labeling blunders with a REAL Stockfish.
+#
+# This is the first time in the project's history that the vertical runs end to end on real games.
+# Weights are uploaded as a run artifact, never committed (Article 8). The pre-registered
+# falsification criterion is in LOG/session-0007-preregistration.md and is NOT retouched here.
+
+on:
+  workflow_dispatch:
+    inputs:
+      lichess_month:
+        description: "Lichess month to sample (YYYY-MM)"
+        required: false
+        default: "2013-01"
+      train_positions:
+        description: "Training positions to load from the shards"
+        required: false
+        default: "30000"
+      label_limit:
+        description: "Positions to label with real Stockfish"
+        required: false
+        default: "1000"
+
+concurrency:
+  group: smoke-train-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  train:
+    name: vertical (data → shards → train → metrics)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Clone guard — data must never be tracked
+        run: |
+          bad=$(git ls-files -i -c --exclude-standard)
+          if [ -n "$bad" ]; then
+            echo "::error::tracked files are ignored by .gitignore:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Pull the day prefix (real Lichess games, resumable, sha256-certified)
+        env:
+          MONTH: ${{ inputs.lichess_month }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import yaml
+          from caissa.acquisition.lichess_bulk import LICHESS_STANDARD, download_prefix
+
+          cfg = yaml.safe_load(Path("configs/data-sample.yaml").read_text())
+          month = os.environ["MONTH"]
+          prefix = int(cfg["lichess_prefix_bytes"])
+          target = Path("data/raw/lichess") / f"lichess_day_{month}.pgn.zst"
+          res = download_prefix(LICHESS_STANDARD.format(month=month), target, prefix)
+          print(f"[data] {res.prefix_bytes} B prefix sha256={res.sha256[:16]}… resumed_from={res.resumed_from}")
+          PY
+
+      - name: Shard the prefix (stream → filter → dedup → jsonl.zst + QA)
+        run: |
+          python -m caissa.processing.cli \
+            data/raw/lichess/lichess_day_${{ inputs.lichess_month }}.pgn.zst \
+            --out data/shards --qa data/qa/processing.json --shard-size 10000 --truncated-ok
+
+      - name: smoke-train on the real shards (pre-registered criterion)
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import yaml
+
+          cfg = yaml.safe_load(Path("configs/smoke-train.yaml").read_text())
+          cfg["max_train_positions"] = int(os.environ["TRAIN_POSITIONS"])
+          Path("configs/smoke-train.ci.yaml").write_text(yaml.safe_dump(cfg))
+          PY
+          python -m caissa.training.smoke_train --config configs/smoke-train.ci.yaml
+        env:
+          TRAIN_POSITIONS: ${{ inputs.train_positions }}
+
+      - name: Metrics
+        run: python -m json.tool data/qa/metrics.json
+
+      - name: Upload metrics artifact
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: smoke-train-metrics
+          path: |
+            data/qa/metrics.json
+            data/qa/processing.json
+          if-no-files-found: error
+
+  label:
+    name: real Stockfish blunder labeling (closes the Phase 2 MOCK debt)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+      - uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Clone guard — data must never be tracked
+        run: |
+          bad=$(git ls-files -i -c --exclude-standard)
+          if [ -n "$bad" ]; then
+            echo "::error::tracked files are ignored by .gitignore:"
+            echo "$bad"
+            exit 1
+          fi
+
+      - name: Cache the pinned Stockfish (keyed by its sha256)
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+        with:
+          path: data/tools
+          key: stockfish-sf_19-linux-x86-64-9defc0d4
+
+      - name: Fetch Stockfish (pinned version, sha256 verified BEFORE the manifest)
+        run: |
+          python -m caissa.acquisition.stockfish --dest data/tools
+          cat data/manifests/stockfish.json
+          echo "STOCKFISH_BIN=$(cat data/tools/stockfish.path)" >> "$GITHUB_ENV"
+          echo "$PWD/data/tools" >> "$GITHUB_PATH"
+
+      - name: Pull the day prefix
+        env:
+          MONTH: ${{ inputs.lichess_month }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import yaml
+          from caissa.acquisition.lichess_bulk import LICHESS_STANDARD, download_prefix
+
+          cfg = yaml.safe_load(Path("configs/data-sample.yaml").read_text())
+          month = os.environ["MONTH"]
+          target = Path("data/raw/lichess") / f"lichess_day_{month}.pgn.zst"
+          res = download_prefix(LICHESS_STANDARD.format(month=month), target, int(cfg["lichess_prefix_bytes"]))
+          print(f"[data] sha256={res.sha256}")
+          PY
+
+      - name: Label blunders with REAL Stockfish (not MOCK)
+        env:
+          LABEL_LIMIT: ${{ inputs.label_limit }}
+        run: |
+          python -m caissa.processing.cli label \
+            data/raw/lichess/lichess_day_${{ inputs.lichess_month }}.pgn.zst \
+            --limit "$LABEL_LIMIT" --engine stockfish --out data/qa/labels.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path("data/qa/labels.json").read_text())
+          assert payload["mock"] is False, "the MOCK-debt job produced a MOCK report — refusing"
+          assert payload["engine"] == "stockfish", payload["engine"]
+          print(f"[label] engine={payload['engine']} positions={payload['positions']} labels={payload['labels']}")
+          PY
+
+      - name: Upload labels + the Stockfish manifest
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: blunder-labels
+          path: |
+            data/qa/labels.json
+            data/manifests/stockfish.json
+          if-no-files-found: error

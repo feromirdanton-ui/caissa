@@ -18,6 +18,7 @@ import json
 import shutil
 import subprocess
 import tarfile
+import tempfile
 import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
@@ -98,12 +99,23 @@ def ensure_stockfish(dest: str | Path = "data/tools") -> StockfishManifest:
     if binary.exists() and pointer.exists():
         print(f"[stockfish] reusing {binary} (cached)")
     else:
-        with tarfile.open(tarball, "r:gz") as tar:
-            member = tar.getmember(STOCKFISH_MEMBER)
-            member.mode = 0o755
-            tar.extract(member, path=dest, filter="data")
-        extracted = dest / STOCKFISH_MEMBER
-        shutil.move(str(extracted), str(binary))
+        # Extract into a scratch dir and move the single binary into place. Extracting straight
+        # into ``dest`` would create ``dest/stockfish/`` (the archive's own top-level folder),
+        # while ``binary`` is the *file* ``dest/stockfish`` — and moving a file onto the directory
+        # of the same name raises ``shutil.Error: Destination path already exists`` every time.
+        # Nothing in the local loop caught this because Stockfish was already on PATH; the first
+        # clean-runner fetch was the only place the extract+move path actually executed.
+        with tempfile.TemporaryDirectory() as scratch:
+            with tarfile.open(tarball, "r:gz") as tar:
+                member = tar.getmember(STOCKFISH_MEMBER)
+                member.mode = 0o755
+                tar.extract(member, path=scratch, filter="data")
+            extracted = Path(scratch) / STOCKFISH_MEMBER
+            if binary.exists():
+                # A previous partial run could have left the archive's folder here; clear it so
+                # the move below cannot silently nest the binary inside a directory.
+                shutil.rmtree(binary) if binary.is_dir() else binary.unlink()
+            shutil.move(str(extracted), str(binary))
         binary.chmod(0o755)
         pointer.write_text(str(binary.resolve()), encoding="utf-8")
 

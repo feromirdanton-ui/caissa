@@ -16,7 +16,7 @@ LIMIT ?= 10000
 ENGINE ?= auto
 
 .DEFAULT_GOAL := help
-.PHONY: help install lint format test smoke data data-sample processing label eval train clean ci
+.PHONY: help install lint format test smoke smoke-train data data-sample processing label eval train clean ci
 
 help: ## Show this help
 	@$(PY) scripts/run.py help
@@ -35,6 +35,9 @@ test: ## Unit + golden + property tests (fast, no network)
 
 smoke: ## CPU micro-benchmark: tiny model, 100 steps, 1000 sampled moves must be 100% legal
 	@$(PY) scripts/run.py smoke --config $(CONFIG)
+
+smoke-train: ## Deep lane (ADR-0011): the «Vertical» experiment on real shards -> metrics artifact
+	@$(PY) scripts/run.py smoke-train --config configs/smoke-train.yaml
 
 data: ## Show the data manifest status (no download)
 	@$(PY) scripts/run.py data

@@ -132,12 +132,21 @@ def label_games(
 
 
 def default_engine(prefer_stockfish: bool = True) -> Engine:
-    """A real Stockfish when one is available, else the MOCK engine (honestly labeled)."""
+    """A real Stockfish when one is available, else the MOCK engine (honestly labeled).
+
+    The fallback is **reported, never silent**: if a Stockfish was asked for and not found, the
+    caller is told which binary was missing and that the result will be a MOCK. A bare
+    ``except ...: pass`` here would hide exactly the condition that makes the report unusable as
+    a result (Article 5), so the reason is named instead.
+    """
     if prefer_stockfish:
         from caissa.guards.counterfactual import StockfishEngine
 
         try:
             return StockfishEngine()
-        except FileNotFoundError:
-            pass
+        except FileNotFoundError as exc:
+            print(
+                f"[label] Stockfish unavailable ({exc}) — falling back to the MOCK engine; "
+                "the report is tagged MOCK and is not a strength result."
+            )
     return MockEngine()

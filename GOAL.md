@@ -78,8 +78,17 @@ generating "training results".
 13. **Phase closure: green run + tag + LOG + human signature** (ADR-0004, Article C). The agent
     *requests* acceptance — it does not declare it.
 14. **The manifest is a certification of truth, not a journal** (ADR-0004, Article D). A record is
-    created only after verifying the sha256 of the written file; a `200`-instead-of-`206` and a
+    created only after verifying the sha256 of the written file; a `200`-instead-of-206 and a
     `416` are loud failures, never silent records.
+15. **Two speeds, one signature** (ADR-0011). The *fast lane* is cheap, runs every session and
+    needs no network: checks that make mistakes visible. The *deep lane* is one real experiment per
+    crossroad, bounded by the runner budget: it exercises the *composition* on real data, and it is
+    what a milestone closes on — never a set of green unit suites alone. A deep-lane experiment's
+    **falsification criterion is written down and committed BEFORE it runs**; retouching it after
+    seeing the numbers is forbidden, and a negative result is recorded with the same care as a
+    positive one. **One human signature per milestone.** Abolished: a phase boundary without an
+    end-to-end run; a declaration without a run URL; an ADR that answers no question; an artifact
+    created "for completeness" with no consuming question and no test.
 
 ## 4. Target architecture
 
@@ -151,11 +160,16 @@ caissa/
   filters (rated standard, Elo buckets), dedup, sharding (jsonl.zst), QA reports (Elo/opening/
   time-control distributions), blunder labeling interface + demo run of 10k positions.
   DoD: 1M games raw→shards reproducibly; QA report in LOG/.
-- **Phase 3 — Representation.** Tokenizer, mask, property tests: random positions, all legal moves
-  allowed by mask, all illegal ones not; promotions/en passant/castling covered.
-  DoD: 10k positions property-tested without errors.
-- **Phase 4 — Model.** Transformer code + heads + bias; tiny config; CPU smoke.
-  DoD: `make smoke` ≤10 min CPU, loss decreasing, 1000 sampled moves — 100% legal.
+- **MILESTONE «Vertical» (Phases 3+4 merged — ADR-0011).** Representation (tokenizer, mask,
+  property tests: random positions, all legal moves allowed by the mask, all illegal ones not;
+  promotions/en passant/castling covered) and Model (transformer + heads + geometric bias; tiny
+  config; CPU smoke) are two halves of one thing. Split, each could close "green" while the
+  composition had never been run — which is the one defect class a unit suite cannot see. Merged
+  per ADR-0011 §3.1, and extended with the first deep-lane training on real shards.
+  DoD: 10k positions property-tested without errors; `make smoke` ≤10 min CPU, loss decreasing,
+  1000 sampled moves — 100% legal; **and one deep-lane run of the composition on real data**
+  (data-sample → shards → train → metrics artifact), with the falsification criterion written
+  down BEFORE the run (ADR-0011 §5). **One human signature closes the milestone.**
 - **Phase 5 — Recipes.** nano/main configs; Act I scripts; DDP/FSDP stubs with documentation;
   TRAINING.md — runbook: every step with checkpoint and fallback.
   DoD: runbook walked step by step on tiny from a clean machine (docker).

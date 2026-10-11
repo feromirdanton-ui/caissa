@@ -12,6 +12,7 @@ The mock is never passed off as a result: its verdicts carry engine="mock".
 
 from __future__ import annotations
 
+import os
 import shutil
 from dataclasses import dataclass
 from enum import Enum
@@ -75,7 +76,9 @@ class StockfishEngine:
     def __init__(self, path: str | None = None, depth: int = 12) -> None:
         import chess.engine  # local import: only needed when a real engine is used
 
-        resolved = path or shutil.which("stockfish")
+        # Resolution order: explicit path, then the STOCKFISH env var (set by CI after the
+        # pinned fetch), then PATH. A named-but-missing binary is a loud failure, never a mock.
+        resolved = path or os.environ.get("STOCKFISH") or shutil.which("stockfish")
         if resolved is None:
             raise FileNotFoundError(
                 "Stockfish binary not found. Set STOCKFISH=/path/to/stockfish or install it."

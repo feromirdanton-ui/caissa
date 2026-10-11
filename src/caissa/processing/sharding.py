@@ -110,6 +110,14 @@ class QAReport:
 
 
 def _game_record(game: chess.pgn.Game) -> dict:
+    """One shard row: the game's headers AND its moves.
+
+    The moves are carried as UCI because a shard is *training data*, not a statistic about games
+    (session-0007: the vertical needs positions). ``start_fen`` is written only for a non-standard
+    start, so a replay never guesses — an empty ``start_fen`` means the standard initial position.
+    """
+    board = game.board()
+    start_fen = "" if board.fen() == chess.STARTING_FEN else board.fen()
     return {
         "white": game.headers.get("White", "?"),
         "black": game.headers.get("Black", "?"),
@@ -122,6 +130,8 @@ def _game_record(game: chess.pgn.Game) -> dict:
         "eco": game.headers.get("ECO", ""),
         "moves": game.end().ply(),
         "site": game.headers.get("Site", ""),
+        "start_fen": start_fen,
+        "uci": [move.uci() for move in game.mainline_moves()],
     }
 
 

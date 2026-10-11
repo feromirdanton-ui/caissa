@@ -61,6 +61,13 @@ jobs:
       - name: mypy
         run: mypy src/caissa
 
+      - name: silence-guard (no step may swallow a failure)
+        # Session 0006: `|| true` turned a red labeling step into a green run. The guard fails the
+        # build on any unexplained swallow; exemptions live in tests/silence_guard_allowlist.txt
+        # with a written reason. Run it explicitly here so the guard is VISIBLE in the run log,
+        # not merely implied by `pytest` passing.
+        run: pytest -q tests/unit/test_ci_silence_guard.py
+
   test:
     name: test (py${{ matrix.python-version }})
     runs-on: ubuntu-latest

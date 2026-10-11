@@ -145,3 +145,55 @@ def flatten(games: list[list[Position]], limit: int | None = None) -> list[Posit
 def move_index(move: chess.Move) -> int:
     """The flat (from, to) index of a move: ``from * 64 + to``."""
     return move.from_square * 64 + move.to_square
+
+
+@dataclass(frozen=True)
+class HistorySample:
+    """One position plus its ``K`` predecessors, oldest first (session-0008, deep lane #2).
+
+    ``history`` has exactly ``K + 1`` boards; the last is the board the move is played on. The
+    predecessors are the *same game*'s earlier positions, so the window never crosses a game
+    boundary — a network reading another game's position would be seeing the future of a
+    different game, which is noise dressed as context.
+    """
+
+    history: tuple[chess.Board, ...]
+    move: chess.Move
+
+    @property
+    def board(self) -> chess.Board:
+        """The current position (the last board of the window)."""
+        return self.history[-1]
+
+
+def game_history_samples(positions: list[Position], *, history: int) -> list[HistorySample]:
+    """Build the history-windowed samples of one game.
+
+    A game with ``len(positions) <= history`` yields **no** samples, because no full window fits.
+    That is stated rather than padded: padding a short game with the initial position would
+    invent context the game never had.
+    """
+    if history < 0:
+        raise ValueError("history must be >= 0")
+    samples: list[HistorySample] = []
+    for i in range(history, len(positions)):
+        window = tuple(positions[j][0] for j in range(i - history, i + 1))
+        samples.append(HistorySample(history=window, move=positions[i][1]))
+    return samples
+
+
+def build_history_samples(
+    games: list[list[Position]], *, history: int, limit: int | None = None
+) -> list[HistorySample]:
+    """Flatten games into history-windowed samples, capped at ``limit``."""
+    out: list[HistorySample] = []
+    for game in games:
+        out.extend(game_history_samples(game, history=history))
+        if limit is not None and len(out) >= limit:
+            return out[:limit]
+    return out
+
+
+def count_short_games(games: list[list[Position]], *, history: int) -> int:
+    """Games too short to contribute a single history window (``len <= K``). Reported, not hidden."""
+    return sum(1 for game in games if len(game) <= history)

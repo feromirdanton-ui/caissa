@@ -110,7 +110,13 @@ jobs:
 
           full_sha = hashlib.sha256(target.read_bytes()).hexdigest()
           half = prefix // 2
-          target.write_bytes(target.read_bytes()[:half])
+          # An interruption leaves a `.part`: the published file is gone and the partial bytes
+          # are the `.part`. Truncating the published file would NOT exercise resume —
+          # download_prefix keys on the `.part`, so it would fetch the whole prefix from zero
+          # again. Model the interruption honestly, exactly as the unit test does.
+          part = target.with_suffix(target.suffix + ".part")
+          part.write_bytes(target.read_bytes()[:half])
+          target.unlink()
           res = download_prefix(LICHESS_STANDARD.format(month=month), target, prefix)
 
           assert res.resumed_from == half, f"expected to resume at {half}, got {res.resumed_from}"
@@ -118,6 +124,7 @@ jobs:
               f"expected {prefix - half} bytes fetched, got {res.fetched_bytes}"
           )
           assert res.fetched_bytes < prefix, "a resume must fetch strictly less than the full prefix"
+          assert not part.exists(), "the .part must be gone after an atomic rename"
           new_sha = hashlib.sha256(target.read_bytes()).hexdigest()
           assert new_sha == full_sha, "the resumed file must be byte-identical to the full prefix"
           proof = {

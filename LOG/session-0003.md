@@ -85,6 +85,7 @@ where it is executable.
 |---|---|---|---|
 | `ci.yml` | push (`defec25`) | **success** | https://github.com/feromirdanton-ui/caissa/actions/runs/38110618393 |
 | `nightly.yml` | workflow_dispatch | **success** | https://github.com/feromirdanton-ui/caissa/actions/runs/38110740709 |
+| `ci.yml` | push (`34c9e51`, final) | **success** | https://github.com/feromirdanton-ui/caissa/actions/runs/38110980188 |
 
 `ci.yml` runs: clone guard → lint (ruff + black + mypy) → test (py3.10/3.11/3.12) → smoke.
 `nightly.yml` runs: property tests → golden suite (incl. Requiem-1) → arena stub → upload reports.

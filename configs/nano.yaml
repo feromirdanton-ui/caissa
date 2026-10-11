@@ -1,0 +1,16 @@
+# nano — first real Act I run (100–300M params). The Definition of Awesome target.
+scale: nano
+params: "100-300M"
+model:
+  d_model: 768
+  n_heads: 12
+  n_layers: 12
+  max_seq_len: 256
+training:
+  batch_size: 64
+  lr: 3.0e-4
+  warmup_steps: 2000
+  checkpoint_every: 1000
+  amp: true
+  flash_attention: true
+data: data/shards  # populated in Phase 2; see docs/TRAINING.md

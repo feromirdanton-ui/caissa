@@ -1,0 +1,12 @@
+# tiny — CPU smoke config (<10M params). Used by `make smoke` and CI.
+scale: tiny
+params: "<10M"
+steps: 100
+sample_moves: 1000
+seed: 0
+model:
+  d_model: 128
+  n_heads: 4
+  n_layers: 2
+  max_seq_len: 96
+data: null  # smoke uses random positions + a heuristic teacher, not real data

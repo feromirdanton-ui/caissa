@@ -1,0 +1,75 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "caissa"
+version = "0.0.1"
+description = "Caïssa-1 — a chess being with strength, voice, memory and the ability to teach (build phase)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Caïssa-1 construction agent" }]
+keywords = ["chess", "transformer", "interpretability", "queens-guard"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+  "python-chess>=1.999",
+  "numpy>=1.24",
+  "pyyaml>=6.0",
+  "requests>=2.31",
+  "tqdm>=4.66",
+  "zstandard>=0.22",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.4",
+  "pytest-cov>=4.1",
+  "hypothesis>=6.100",
+  "ruff>=0.5",
+  "black>=24.4",
+  "mypy>=1.10",
+  "pre-commit>=3.7",
+]
+torch = ["torch>=2.2"]
+
+[project.scripts]
+caissa-download = "caissa.acquisition.cli:main"
+caissa-shard = "caissa.processing.cli:main"
+caissa-eval = "caissa.eval.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "network: tests that require network access (deselected by default in CI)",
+  "slow: long-running tests",
+]
+filterwarnings = ["error::DeprecationWarning:caissa.*"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_unused_ignores = true
+ignore_missing_imports = true
+files = ["src/caissa"]

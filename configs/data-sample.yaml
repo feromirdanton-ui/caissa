@@ -1,0 +1,5 @@
+# data-sample — Phase 1 DoD: a month of Lichess + 1000 puzzles + a TWIC month.
+lichess_month: "2013-01"
+puzzles: 1000
+twic_month: "2024-01"
+resume: true

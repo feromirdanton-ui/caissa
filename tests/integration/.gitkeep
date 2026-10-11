@@ -1,0 +1,2 @@
+Keeps this directory in git so the layout promised by GOAL.md §4.6 and ADR-0002 survives a clone.
+Cross-component tests belong here; they run as part of `make test`.

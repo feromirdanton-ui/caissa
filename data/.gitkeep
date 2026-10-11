@@ -1,0 +1,2 @@
+Keeps this directory in git (git does not track empty directories).
+Manifests live in data/manifests/; raw data never enters git (GOAL.md Article 8).

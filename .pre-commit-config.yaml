@@ -1,0 +1,38 @@
+# Caïssa-1 pre-commit hooks. Install with: pre-commit install
+# Article 7: CI always green — these hooks keep local commits honest.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.7
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black
+    rev: 24.4.2
+    hooks:
+      - id: black
+        language_version: python3
+
+  - repo: local
+    hooks:
+      - id: no-data-in-git
+        name: no data/weights committed (Article 8)
+        # tests/fixtures/ is exempt: a 600-byte hand-written PGN fixture is source, not data,
+        # and the test suite cannot run without it (session-0002 P0-1).
+        entry: bash -c 'files=$(git diff --cached --name-only | grep -E "\.(zst|pgn|bin|nnue|pt|pth|safetensors|ckpt)$" | grep -v "^tests/fixtures/"); if [ -n "$files" ]; then echo "BLOCKED: data/weights must not be committed — manifests only (GOAL.md Article 8)"; echo "$files"; exit 1; fi'
+        language: system
+        pass_filenames: false

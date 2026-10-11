@@ -1,0 +1,39 @@
+# --- Data & weights: NEVER in git (GOAL.md Article 8) ---
+data/**
+!data/.gitkeep
+!data/manifests/
+!data/manifests/**
+*.zst
+*.pgn
+# …but the tiny hand-written test fixture is source, not data (session-0002 P0-1):
+!tests/fixtures/*.pgn
+*.pgn.zst
+*.bin
+*.nnue
+*.pt
+*.pth
+*.safetensors
+*.ckpt
+*.part
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# --- Tooling caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp

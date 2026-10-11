@@ -1,0 +1,5 @@
+# eval — arena stub config. MOCK opponent unless a Stockfish binary is wired in.
+games: 20
+opponent: stockfish-level-1
+seed: 0
+mock: true  # honest label: this is a wiring test, not a strength result

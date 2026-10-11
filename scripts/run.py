@@ -9,7 +9,8 @@ POSIX shell, so it runs on Windows, macOS and Linux alike.
 Usage:
     python scripts/run.py <target> [--config PATH] [-- ...extra args]
 
-Targets: help install lint format test smoke smoke-train data data-sample processing label eval train ci clean
+Targets: help install lint format test smoke smoke-train smoke-train-v2 data data-sample
+         processing label eval train ci clean
 """
 
 from __future__ import annotations
@@ -84,6 +85,11 @@ def t_smoke(args: argparse.Namespace) -> int:
 def t_smoke_train(args: argparse.Namespace) -> int:
     """Deep lane (ADR-0011): the «Vertical» experiment on real shards. Honest scale, no claims."""
     return _run(_module("caissa.training.smoke_train", "--config", args.config))
+
+
+def t_smoke_train_v2(args: argparse.Namespace) -> int:
+    """Deep lane #2 (session 0008): the scaled vertical — history + geometry, with two ablations."""
+    return _run(_module("caissa.training.smoke_train_v2", "--config", args.config))
 
 
 def t_data(_: argparse.Namespace) -> int:
@@ -166,6 +172,7 @@ TARGETS = {
     "test": t_test,
     "smoke": t_smoke,
     "smoke-train": t_smoke_train,
+    "smoke-train-v2": t_smoke_train_v2,
     "data": t_data,
     "data-sample": t_data_sample,
     "processing": t_processing,
@@ -181,8 +188,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Caïssa-1 command runner (ADR-0005)")
     parser.add_argument("target", nargs="?", default="help", choices=sorted(TARGETS))
     parser.add_argument("--config", default=DEFAULT_CONFIG, help="config file for the target")
-    # smoke-train ships its own config, so its default is the experiment's, not `tiny`.
-    if argv and argv[:1] == ["smoke-train"] and "--config" not in argv:
+    # The smoke-train lanes ship their own configs, so their defaults are the experiment's, not
+    # `tiny`. Each is matched exactly (`smoke-train-v2` must not fall into the `smoke-train` branch).
+    if argv and argv[:1] == ["smoke-train-v2"] and "--config" not in argv:
+        argv = ["smoke-train-v2", "--config", "configs/smoke-train-v2.yaml", *argv[1:]]
+    elif argv and argv[:1] == ["smoke-train"] and "--config" not in argv:
         argv = ["smoke-train", "--config", "configs/smoke-train.yaml", *argv[1:]]
     parser.add_argument("--pgn", default="data/raw/lichess/lichess_day_2013-01.pgn.zst")
     parser.add_argument("--out", default="data/shards")

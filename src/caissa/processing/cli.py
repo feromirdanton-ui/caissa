@@ -18,7 +18,7 @@ from pathlib import Path
 
 from caissa.guards.counterfactual import Engine
 from caissa.processing.filters import GameFilter
-from caissa.processing.labeling import default_engine, label_games
+from caissa.processing.labeling import LabelReport, default_engine, label_games
 from caissa.processing.pgn import ParseStats, iter_games_any
 from caissa.processing.sharding import shard_games
 
@@ -87,6 +87,18 @@ def label_main(argv: list[str] | None = None) -> int:
         default="auto",
         help="auto = real Stockfish when present, else MOCK (labeled)",
     )
+    parser.add_argument(
+        "--timeout-s",
+        type=float,
+        default=None,
+        help="stop after this many seconds and record the report as PARTIAL (never silent)",
+    )
+    parser.add_argument(
+        "--checkpoint-every",
+        type=int,
+        default=0,
+        help="write a progress checkpoint every N positions (0 = off)",
+    )
     args = parser.parse_args(argv)
 
     if args.engine == "mock":
@@ -100,36 +112,39 @@ def label_main(argv: list[str] | None = None) -> int:
     else:
         engine = default_engine()
 
-    stats = ParseStats()
-    games = iter_games_any(args.pgn, strict=False, stats=stats, truncated_ok=True)
-    report = label_games(games, engine, limit=args.limit)
-
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        json.dumps(
-            {
-                "engine": report.engine,
-                "mock": report.is_mock,
-                "positions": report.positions,
-                "labels": dict(sorted(report.labels.items())),
-                "samples": [
-                    {
-                        "fen": s.fen,
-                        "move": s.move,
-                        "cp_loss": s.cp_loss,
-                        "label": s.label.value,
-                    }
-                    for s in report.samples
-                ],
-            },
-            indent=2,
-            sort_keys=True,
+    checkpoint_path = out.with_suffix(".checkpoint.json")
+
+    def _write(report: LabelReport) -> None:
+        out.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+
+    def _checkpoint(report: LabelReport) -> None:
+        checkpoint_path.write_text(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+        eta = report.eta_seconds(max(0, args.limit - report.positions))
+        eta_text = f"{eta:.0f}s" if eta is not None else "unknown (rate not yet measured)"
+        print(
+            f"[label] checkpoint: {report.positions} positions, "
+            f"{report.positions_per_second:.2f}/s, ETA {eta_text}"
         )
+
+    stats = ParseStats()
+    games = iter_games_any(args.pgn, strict=False, stats=stats, truncated_ok=True)
+    report = label_games(
+        games,
+        engine,
+        limit=args.limit,
+        timeout_s=args.timeout_s,
+        on_checkpoint=_checkpoint if args.checkpoint_every > 0 else None,
+        checkpoint_every=args.checkpoint_every,
     )
+
+    _write(report)
     print(report.to_markdown())
     if report.is_mock:
         print("[label] MOCK engine — this is a wiring test, not a strength result.")
+    if report.timed_out:
+        print(f"[label] PARTIAL report: {report.timeout_reason}")
     print(f"[label] report written to {out}")
     return 0
 

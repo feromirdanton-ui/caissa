@@ -67,10 +67,31 @@ class _ZstdRaw(io.RawIOBase):
         self._chunk = chunk
         self._buf = b""
         self._done = False
+        self._at_frame_start = True
         self.truncated = False
 
     def readable(self) -> bool:  # pragma: no cover - io contract
         return True
+
+    def _feed(self, data: bytes) -> None:
+        """Feed bytes to the current frame, rolling over to the next frame on ``eof``.
+
+        A Lichess archive is a **concatenation of zstd frames**, and a ``decompressobj``
+        stops at the end of the first one — feeding it more raises
+        ``ZstdError: cannot use a decompressobj multiple times``. The bytes of the next
+        frame are handed back in ``unused_data``, so a fresh object is started with them.
+        """
+        while data:
+            out = self._decomp.decompress(data)
+            if out:
+                self._buf += out
+            if self._decomp.eof:
+                data = self._decomp.unused_data
+                self._decomp = zstd.ZstdDecompressor().decompressobj()
+                self._at_frame_start = True
+            else:
+                self._at_frame_start = False
+                return
 
     def readinto(self, b) -> int:
         while not self._buf:
@@ -79,10 +100,12 @@ class _ZstdRaw(io.RawIOBase):
             data = self._fh.read(self._chunk)
             if not data:
                 self._done = True
-                if not self._decomp.eof:
+                # A stream that ends mid-frame is truncated; one that ends exactly on a
+                # frame boundary is complete. `_at_frame_start` is the honest signal.
+                if not self._at_frame_start:
                     self.truncated = True
                 return 0
-            self._buf = self._decomp.decompress(data)
+            self._feed(data)
         n = min(len(b), len(self._buf))
         b[:n] = self._buf[:n]
         self._buf = self._buf[n:]

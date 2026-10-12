@@ -1,15 +1,15 @@
-# smoke-train-v2 — the scaled vertical (session-0008, deep lane #2, ADR-0011).
+# smoke-train-v2 -- the scaled vertical (session-0008, deep lane #2, ADR-0011).
 #
 # v1 (`configs/smoke-train.yaml`) proved the composition on real games with K=0 and a linear head.
 # v2 asks whether more capacity AND move history raise top-1 move accuracy, and then attributes the
 # change to an organ with two ablations run from the SAME shards and the SAME split seed.
 #
 # The decision rule is NOT in this file: it is pre-registered, before dispatch, in
-# LOG/session-0008-preregistration.md. `success_threshold` is copied here so the script can print
-# the verdict, but the number is the one written in that file first — moving it here after seeing
-# the metrics would be exactly the retouching ADR-0011 §5 forbids.
+# LOG/session-0010-preregistration.md. `success_threshold` is copied here so the script can print
+# the verdict, but the number is the one written in that file first -- moving it here after seeing
+# the metrics would be exactly the retouching ADR-0011 sec.5 forbids.
 #
-# Weights are a disposable run artifact — never a git object (Article 8).
+# Weights are a disposable run artifact -- never a git object (Article 8).
 
 scale: small
 lane: deep
@@ -20,33 +20,46 @@ ablations_out: data/qa/ablations-v2.json
 history: 8               # K: the last 8 boards before the current one, encoded by a shared encoder
 # The eval set is built ONCE with this K and shared by the main run and BOTH ablations, so a
 # component's contribution is a controlled difference on the SAME positions (session-0009
-# preflight). `no_history` (K=0) reads only the current board of that same window — it changes
+# preflight). `no_history` (K=0) reads only the current board of that same window -- it changes
 # the model's input, never the set it is measured on. Without this the K=0 ablation would be
 # scored on a larger set (ply >= 0) than the main run (ply >= 8): a confounder, not an ablation.
 window_history: 8
 model:
   name: numpy_history
-  d_model: 256           # v1 was 128 → 256
+  d_model: 256           # v1 was 128 -> 256
   n_heads: 8             # heads at the same proportion to d_model as v1 (128/4)
   geometric_bias: true   # the MAIN run carries the prior; ablation #1 removes it
 
 val_fraction: 0.05       # split BY GAME, so no game straddles train and val
 seed: 0
+# HONEST SMALL SCALE (session-0010). The driver measured ~0.33 s per train_step on the sandbox at
+# d_model=256, K=8; a 40k x 2 budget would be ~7 h and cannot fit a <= 120-min run. We therefore fix
+# an honest, stated step budget instead of silently timing out or silently truncating. The CRITERION
+# is not touched: v1 is retrained on the SAME budget, so v1@v2-set and v2 share the step count and
+# the comparison stays apples-to-apples.
 max_positions_to_load: 200000
-max_train_positions: 40000   # v1 was 30000 → steps ×2 with epochs 2
-max_val_positions: 2000
+max_train_positions: 2000    # declared, not hidden: ~0.33 s/step at d_model=256, K=8
+max_val_positions: 400
 epochs: 2
-lr: 0.05
+# lr fixed A PRIORI for session-0010, before any run, from the session-0009 reproduction:
+#   lr=0.05 -> DIVERGED (loss 3.44 -> 27.6) * lr<=0.01 -> decreasing (scripts/repro_nan.py).
+# We take the TOP of the stable range (0.01), the more demanding of the two safe values. Chosen
+# BEFORE the shot and not moved after it (session-0010 pre-registration, item 4).
+lr: 0.01
+v1_reference: true       # retrain v1 (tiny) in the same run and score it on BOTH eval sets
+v1_lr: 0.05              # v1 keeps its own stable rate: an lr is part of an architecture's price
+v1_epochs: 2
+guard_every: 200         # the NaN guard also checks parameter finiteness every N steps
 sample_moves: 1000       # the Article 1 gate: these must be 100% legal
 budget_minutes: 90       # the runner constraint, stated rather than silently truncated
-success_threshold: 0.30  # pre-registered in LOG/session-0008-preregistration.md
+success_threshold: 0.30  # pre-registered in LOG/session-0010-preregistration.md
 
-# Two micro-ablations. Each answers a question written down in advance (session-0008 §Ablations):
+# Two micro-ablations. Each answers a question written down in advance (session-0008 Ablations section):
 #   #1 does the geometric prior pay for itself in top-1 accuracy?
 #   #2 does history context pay for itself in top-1 accuracy?
 # A negative answer is a result: the map of which organ contributes is built from honest zeros.
-# Both run at a reduced position budget (40000, epochs 1) because a *relative* comparison of two
-# components is a weaker claim than the main run's absolute number — stated, not hidden.
+# The ablations run at epochs 1: a *relative* comparison of two components is a weaker claim than
+# the main run's absolute number -- stated, not hidden.
 ablations:
   - name: no_geometry_bias
     overrides:

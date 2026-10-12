@@ -1,14 +1,17 @@
-"""`smoke-train-v2` — the scaled vertical, exercised **locally** on real fixtures (session-0008).
+"""`smoke-train-v2` -- the scaled vertical, exercised **locally** on real fixtures.
 
 The runner repeats this on REAL Lichess games; here the input is the realism fixture set, so the
-test is deterministic and needs no network. It proves the *machinery*: shards → history windows →
-split by game → train → metrics → pre-registered verdict, plus the two ablations running from the
+test is deterministic and needs no network. It proves the *machinery*: shards -> history windows ->
+split by game -> train -> metrics -> pre-registered verdict, plus the two ablations running from the
 same split and reporting a delta each.
 
-It does NOT claim chess strength, and the fixture's accuracy is meaningless as a result — a small
+It does NOT claim chess strength, and the fixture's accuracy is meaningless as a result -- a small
 fixture of two opening lines is separable, so top-1 saturates. The assertions are therefore about
 properties that must hold (legality, artifacts, deltas, split integrity), never about a number that
 only the real run can produce.
+
+The divergence guard -- the new INVALID branch of session-0010 -- is tested in
+`test_smoke_train_v2_guard.py`, which carries its own mutation control.
 """
 
 from __future__ import annotations
@@ -16,56 +19,22 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import chess
 import pytest
-import yaml
 
-from caissa.processing.pgn import iter_games
-from caissa.processing.sharding import shard_games
-from caissa.testing.realism import build_valid_pgn
+from caissa.testing.v2_support import make_config, make_shards
 from caissa.training import smoke_train_v2
 from caissa.training.dataset import build_history_samples, count_short_games, load_games
 
 
 @pytest.fixture()
 def shards(tmp_path: Path) -> Path:
-    pgn = tmp_path / "sample.pgn"
-    pgn.write_bytes(build_valid_pgn(60, seed=11))
-    out = tmp_path / "shards"
-    report = shard_games(iter_games(pgn), out, shard_size=15)
-    assert report.kept == 60
-    return out
+    return make_shards(tmp_path)
 
 
 @pytest.fixture()
 def config(tmp_path: Path, shards: Path) -> Path:
-    cfg = {
-        "scale": "small",
-        "shards": str(shards),
-        "metrics": str(tmp_path / "qa" / "metrics-v2.json"),
-        "ablations_out": str(tmp_path / "qa" / "ablations-v2.json"),
-        "history": 4,
-        "model": {"name": "numpy_history", "d_model": 16, "n_heads": 2, "geometric_bias": True},
-        "val_fraction": 0.05,
-        "seed": 0,
-        "max_positions_to_load": 5000,
-        "max_train_positions": 400,
-        "max_val_positions": 120,
-        "epochs": 2,
-        "lr": 0.05,
-        "sample_moves": 120,
-        "budget_minutes": 90,
-        "success_threshold": 0.30,
-        "ablations": [
-            {
-                "name": "no_geometry_bias",
-                "overrides": {"model": {"geometric_bias": False}, "epochs": 1},
-            },
-            {"name": "no_history", "overrides": {"history": 0, "window_history": 4, "epochs": 1}},
-        ],
-    }
-    path = tmp_path / "v2.yaml"
-    path.write_text(yaml.safe_dump(cfg))
-    return path
+    return make_config(tmp_path, shards)
 
 
 def test_vertical_v2_runs_and_stays_legal(config: Path) -> None:
@@ -99,7 +68,7 @@ def test_both_artifacts_are_written_and_self_describing(config: Path) -> None:
     labels = {a["label"] for a in ablations["ablations"]}
     assert labels == {"no_geometry_bias", "no_history"}
     for entry in ablations["ablations"]:
-        # Every ablation must carry a real delta versus the main run — a missing delta would make
+        # Every ablation must carry a real delta versus the main run -- a missing delta would make
         # the ablation unreadable, which is the whole point of running it.
         assert "delta_top1_vs_main" in entry
         assert entry["legality"]["rate"] == 1.0
@@ -133,9 +102,7 @@ def test_history_windows_do_not_cross_a_game_boundary(shards: Path) -> None:
 
 
 def test_games_too_short_for_a_window_are_counted_not_padded() -> None:
-    """A game shorter than K+1 contributes nothing and is counted — never padded with a fake board."""
-    import chess
-
+    """A game shorter than K+1 contributes nothing and is counted -- never padded with a fake board."""
     games = [
         [(chess.Board(), chess.Move.from_uci("e2e4"))],  # 1 position, cannot fill a K=4 window
         [(chess.Board(), chess.Move.from_uci("d2d4"))] * 10,  # long enough
@@ -146,6 +113,8 @@ def test_games_too_short_for_a_window_are_counted_not_padded() -> None:
 
 
 def test_missing_shards_are_a_loud_failure(tmp_path: Path) -> None:
+    import yaml
+
     cfg = tmp_path / "empty.yaml"
     cfg.write_text(
         yaml.safe_dump({"shards": str(tmp_path / "nope"), "metrics": str(tmp_path / "m.json")})
@@ -155,9 +124,7 @@ def test_missing_shards_are_a_loud_failure(tmp_path: Path) -> None:
 
 
 def test_invalid_legality_fails_the_run(monkeypatch: pytest.MonkeyPatch, config: Path) -> None:
-    """A legality leak makes the run INVALID and the CLI exits non-zero — a defect, not a finding."""
-    import chess
-
+    """A legality leak makes the run INVALID and the CLI exits non-zero -- a defect, not a finding."""
     from caissa.model.numpy_history import NumpyHistoryModel
 
     def leaky(self, board, x_hist):  # noqa: ANN001, ANN202 - test double
@@ -177,7 +144,7 @@ def test_eval_set_is_identical_across_main_and_ablations(config: Path) -> None:
     """Session-0009 preflight: the main run and BOTH ablations are scored on the SAME positions.
 
     The confounder this pins: `no_history` sets K=0, and if the window were rebuilt at K=0 the
-    ablation would be evaluated on a LARGER set (ply >= 0) than the main run (ply >= 4) — so a
+    ablation would be evaluated on a LARGER set (ply >= 0) than the main run (ply >= 4) -- so a
     top-1 delta would mix the component's effect with a change of eval set. `window_history`
     keeps the main run's K for every configuration, so the counts must match exactly.
     """
@@ -194,3 +161,18 @@ def test_eval_set_is_identical_across_main_and_ablations(config: Path) -> None:
     # The K=0 ablation must still READ a single board (its input shrank) while the eval set did not.
     assert by_label["no_history"]["config"]["history"] == 0
     assert main["config"]["history"] == 4
+
+
+def test_v1_reference_is_retrained_and_scored_on_both_sets(config: Path) -> None:
+    """Session-0010 item 5: v1 is retrained in the same run and scored on BOTH eval sets.
+
+    The v1->v2 comparison is only honest if both models are measured with the same ruler, so the
+    artifact must carry `v1_at_v2_set` alongside `v1_at_v1_set`.
+    """
+    metrics = smoke_train_v2.run(str(config))
+    v1 = metrics["v1_reference"]
+
+    assert v1["label"] == "v1_reference"
+    assert v1["model"] == "numpy_tiny"
+    assert v1["v1_at_v1_set"]["val_positions"] > 0
+    assert v1["v1_at_v2_set"]["val_positions"] == metrics["data"]["val_samples"]

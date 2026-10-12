@@ -23,7 +23,12 @@ from pathlib import Path
 
 import yaml
 
-from scripts.smoke_train_v2_ci import fetch_prefix, shard, verify_shards
+# Running `python scripts/foo.py` puts `scripts/` on sys.path, not the repo root, so the sibling
+# package import below would fail with ModuleNotFoundError. Add the repo root explicitly -- the
+# workflow runs this file directly, and the import must not depend on how it was invoked.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from scripts.smoke_train_v2_ci import fetch_prefix, shard, verify_shards  # noqa: E402
 
 CONFIG = "configs/smoke-train-stability.yaml"
 CI_CONFIG = "configs/smoke-train-stability.ci.yaml"

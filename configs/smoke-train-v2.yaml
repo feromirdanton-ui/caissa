@@ -18,6 +18,12 @@ metrics: data/qa/metrics-v2.json
 ablations_out: data/qa/ablations-v2.json
 
 history: 8               # K: the last 8 boards before the current one, encoded by a shared encoder
+# The eval set is built ONCE with this K and shared by the main run and BOTH ablations, so a
+# component's contribution is a controlled difference on the SAME positions (session-0009
+# preflight). `no_history` (K=0) reads only the current board of that same window — it changes
+# the model's input, never the set it is measured on. Without this the K=0 ablation would be
+# scored on a larger set (ply >= 0) than the main run (ply >= 8): a confounder, not an ablation.
+window_history: 8
 model:
   name: numpy_history
   d_model: 256           # v1 was 128 → 256
@@ -50,4 +56,5 @@ ablations:
   - name: no_history
     overrides:
       history: 0
+      window_history: 8   # keep the MAIN run's eval set; only the model's input shrinks
       epochs: 1

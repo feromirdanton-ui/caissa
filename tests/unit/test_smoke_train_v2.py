@@ -60,7 +60,7 @@ def config(tmp_path: Path, shards: Path) -> Path:
                 "name": "no_geometry_bias",
                 "overrides": {"model": {"geometric_bias": False}, "epochs": 1},
             },
-            {"name": "no_history", "overrides": {"history": 0, "epochs": 1}},
+            {"name": "no_history", "overrides": {"history": 0, "window_history": 4, "epochs": 1}},
         ],
     }
     path = tmp_path / "v2.yaml"
@@ -171,3 +171,26 @@ def test_invalid_legality_fails_the_run(monkeypatch: pytest.MonkeyPatch, config:
     # The Article 1 gate plays the policy's top-1 move, so that is the seam to break.
     monkeypatch.setattr(NumpyHistoryModel, "argmax_move", leaky)
     assert smoke_train_v2.main(["--config", str(config)]) == 1
+
+
+def test_eval_set_is_identical_across_main_and_ablations(config: Path) -> None:
+    """Session-0009 preflight: the main run and BOTH ablations are scored on the SAME positions.
+
+    The confounder this pins: `no_history` sets K=0, and if the window were rebuilt at K=0 the
+    ablation would be evaluated on a LARGER set (ply >= 0) than the main run (ply >= 4) — so a
+    top-1 delta would mix the component's effect with a change of eval set. `window_history`
+    keeps the main run's K for every configuration, so the counts must match exactly.
+    """
+    main = smoke_train_v2.run(str(config))
+    ablations = json.loads((config.parent / "qa" / "ablations-v2.json").read_text())
+    by_label = {a["label"]: a for a in ablations["ablations"]}
+
+    for label in ("no_geometry_bias", "no_history"):
+        assert (
+            by_label[label]["data"]["val_samples"] == main["data"]["val_samples"]
+        ), f"{label} was scored on a different eval set than the main run"
+        assert by_label[label]["data"]["val_games"] == main["data"]["val_games"]
+
+    # The K=0 ablation must still READ a single board (its input shrank) while the eval set did not.
+    assert by_label["no_history"]["config"]["history"] == 0
+    assert main["config"]["history"] == 4

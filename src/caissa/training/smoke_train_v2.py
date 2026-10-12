@@ -73,33 +73,48 @@ def _build_model(cfg: dict) -> NumpyHistoryModel:
     )
 
 
-def _hist_matrix(sample: HistorySample) -> np.ndarray:
-    """Encode a sample's history window into the ``(K+1, FEATURE_DIM)`` matrix the model wants."""
-    return np.stack([encode(board) for board in sample.history], axis=0)
+def _hist_matrix(sample: HistorySample, history: int) -> np.ndarray:
+    """Encode the LAST ``history + 1`` boards of a sample's window.
+
+    The window is built once with the MAIN run's ``K`` so every configuration is scored on the
+    SAME positions (session-0009 preflight: the eval set is the controlled comparison surface).
+    A model with a smaller ``K`` consumes only the suffix it can read — ``K=0`` sees the current
+    board alone — so an ablation changes the model's input, never the set it is measured on.
+    """
+    boards = sample.history[-(history + 1) :]
+    return np.stack([encode(board) for board in boards], axis=0)
 
 
-def _accuracy(model: NumpyHistoryModel, samples: list[HistorySample]) -> float:
+def _accuracy(model: NumpyHistoryModel, samples: list[HistorySample], history: int) -> float:
     """Top-1 (from, to) accuracy of the masked policy over ``samples``."""
     if not samples:
         return 0.0
     hits = 0
     for sample in samples:
-        probs = model.masked_probs(sample.board, _hist_matrix(sample))
+        probs = model.masked_probs(sample.board, _hist_matrix(sample, history))
         if int(np.argmax(probs)) == move_index(sample.move):
             hits += 1
     return hits / len(samples)
 
 
-def _mean_loss(model: NumpyHistoryModel, samples: list[HistorySample]) -> float:
+def _mean_loss(model: NumpyHistoryModel, samples: list[HistorySample], history: int) -> float:
     """Mean masked cross-entropy over ``samples`` without touching the weights."""
     if not samples:
         return float("nan")
-    return sum(model.loss(s.board, _hist_matrix(s), s.move) for s in samples) / len(samples)
+    return sum(model.loss(s.board, _hist_matrix(s, history), s.move) for s in samples) / len(
+        samples
+    )
 
 
 def _train_once(cfg: dict, games: list[list[Position]], *, label: str) -> dict:
     """Train one configuration end to end and return its metrics dict."""
     history = int(cfg.get("history", 8))
+    # The window is built with the MAIN run's K for every configuration, so the eval set is the
+    # SAME positions for the main run and both ablations (session-0009 preflight). Without this,
+    # `no_history` (K=0) would be scored on a different, larger set (ply >= 0) than the main run
+    # (ply >= K) — a confounder, not an ablation. `window_history` defaults to `history`, so the
+    # main run is unchanged; only a smaller-K ablation reads a suffix of the same window.
+    window_history = int(cfg.get("window_history", history))
     val_fraction = float(cfg.get("val_fraction", 0.05))
     seed = int(cfg.get("seed", 0))
     max_train = int(cfg.get("max_train_positions", 60_000))
@@ -112,14 +127,14 @@ def _train_once(cfg: dict, games: list[list[Position]], *, label: str) -> dict:
 
     started = time.time()
     train_games, val_games = split_games(games, val_fraction=val_fraction, seed=seed)
-    train = build_history_samples(train_games, history=history, limit=max_train)
-    val = build_history_samples(val_games, history=history, limit=max_val)
+    train = build_history_samples(train_games, history=window_history, limit=max_train)
+    val = build_history_samples(val_games, history=window_history, limit=max_val)
     if not train or not val:
         raise SystemExit(
-            f"[smoke-train-v2:{label}] the history window (K={history}) left no samples. "
+            f"[smoke-train-v2:{label}] the history window (K={window_history}) left no samples. "
             "Lower `history` or use longer games — never pad a window."
         )
-    short = count_short_games(games, history=history)
+    short = count_short_games(games, history=window_history)
     print(
         f"[smoke-train-v2:{label}] K={history} d_model={cfg.get('model', {}).get('d_model')} "
         f"heads={cfg.get('model', {}).get('n_heads')} geom={cfg.get('model', {}).get('geometric_bias')} "
@@ -139,7 +154,7 @@ def _train_once(cfg: dict, games: list[list[Position]], *, label: str) -> dict:
 
     model = _build_model(cfg)
     rng = random.Random(seed)
-    val_curve: list[float] = [_mean_loss(model, val)]
+    val_curve: list[float] = [_mean_loss(model, val, history)]
     train_curve: list[float] = []
 
     for epoch in range(epochs):
@@ -148,7 +163,9 @@ def _train_once(cfg: dict, games: list[list[Position]], *, label: str) -> dict:
         running, seen = 0.0, 0
         for idx in order:
             sample = train[idx]
-            running += model.train_step(sample.board, _hist_matrix(sample), sample.move, lr=lr)
+            running += model.train_step(
+                sample.board, _hist_matrix(sample, history), sample.move, lr=lr
+            )
             seen += 1
             if seen % max(1, len(order) // 4) == 0:
                 print(
@@ -156,14 +173,14 @@ def _train_once(cfg: dict, games: list[list[Position]], *, label: str) -> dict:
                     f"loss={running / seen:.4f} elapsed={time.time() - started:.0f}s"
                 )
         train_curve.append(running / max(1, seen))
-        val_curve.append(_mean_loss(model, val))
+        val_curve.append(_mean_loss(model, val, history))
         print(
             f"[smoke-train-v2:{label}] epoch {epoch + 1} done: train={train_curve[-1]:.4f} "
             f"val={val_curve[-1]:.4f}"
         )
 
     val_loss_first, val_loss_last = val_curve[0], val_curve[-1]
-    top1 = _accuracy(model, val)
+    top1 = _accuracy(model, val, history)
     loss_decreasing = val_loss_last < val_loss_first
 
     # --- the Article 1 gate: 1000 top-1 moves must be 100% legal ---
@@ -178,7 +195,7 @@ def _train_once(cfg: dict, games: list[list[Position]], *, label: str) -> dict:
         if board.is_game_over() or board.fen() in seen_fens:
             continue
         seen_fens.add(board.fen())
-        move = model.argmax_move(board, _hist_matrix(sample))
+        move = model.argmax_move(board, _hist_matrix(sample, history))
         sampled += 1
         if move in board.legal_moves:
             legal += 1

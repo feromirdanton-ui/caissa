@@ -164,10 +164,93 @@ def tiny_mean_loss(model: NumpyTinyModel, positions: list[Position]) -> float:
     return sum(model.train_step(b, m, lr=0.0) for b, m in positions) / len(positions)
 
 
+def correctness_v2(
+    model: NumpyHistoryModel, samples: list[HistorySample], history: int
+) -> list[bool]:
+    """Top-1 correct/incorrect per position, IN ORDER — the input McNemar needs.
+
+    `accuracy_v2` collapses this to a single number; the pairing is what a significance test
+    requires, so the vector is exposed rather than re-derived. The order is the eval set's own
+    order, identical for every configuration, which is what makes the pairing valid.
+    """
+    out: list[bool] = []
+    for sample in samples:
+        probs = model.masked_probs(sample.board, samples_matrix(sample, history))
+        out.append(int(np.argmax(probs)) == move_index(sample.move))
+    return out
+
+
+def correctness_tiny(model: NumpyTinyModel, positions: list[Position]) -> list[bool]:
+    """The v1 model's correctness vector over the SAME positions, in the same order."""
+    return [
+        int(np.argmax(model.masked_probs(board))) == move_index(move) for board, move in positions
+    ]
+
+
+class PlateauTracker:
+    """Stop training when the validation loss stops improving — the session-0011 budget.
+
+    Equal step counts judge the stopwatch: two configurations trained for the same number of steps
+    are not being compared if one is still falling. This tracker stops a configuration at its own
+    plateau, and reports the step and epoch at which that happened, so "trained to convergence" is
+    a visible fact rather than an assertion.
+
+    `eps` (absolute) is deliberate: without a margin, float jitter on a flat curve would register
+    as improvement forever and the patience would never fire.
+    """
+
+    def __init__(self, *, patience: int = 5, eps: float = 1e-4, min_evals: int = 3) -> None:
+        if patience < 1:
+            raise ValueError("patience must be >= 1")
+        if min_evals < 1:
+            raise ValueError("min_evals must be >= 1")
+        self.patience = patience
+        self.eps = eps
+        self.min_evals = min_evals
+        self.best = float("inf")
+        self.best_eval = 0
+        self.since_improvement = 0
+        self.evals = 0
+
+    def update(self, value: float) -> bool:
+        """Record an evaluation; return True once patience has been exhausted."""
+        self.evals += 1
+        if not math.isfinite(value):
+            raise DivergenceError(
+                f"a non-finite validation loss ({value}) — the instrument is gone"
+            )
+        if value < self.best - self.eps:
+            self.best = value
+            self.best_eval = self.evals
+            self.since_improvement = 0
+        else:
+            self.since_improvement += 1
+        return self.evals >= self.min_evals and self.since_improvement >= self.patience
+
+    @property
+    def reached(self) -> bool:
+        return self.evals >= self.min_evals and self.since_improvement >= self.patience
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "patience": self.patience,
+            "eps": self.eps,
+            "min_evals": self.min_evals,
+            "evaluations": self.evals,
+            "best_val_loss": self.best,
+            "best_eval": self.best_eval,
+            "evals_without_improvement": self.since_improvement,
+            "plateau_reached": self.reached,
+        }
+
+
 __all__ = [
     "DivergenceError",
+    "PlateauTracker",
     "accuracy_v2",
     "assert_finite",
+    "correctness_tiny",
+    "correctness_v2",
     "cross_ruler_baseline",
     "mean_loss_v2",
     "parameters_finite",

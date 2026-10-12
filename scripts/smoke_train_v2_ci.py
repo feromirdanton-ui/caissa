@@ -101,24 +101,43 @@ def summary() -> int:
     main = json.loads(Path("data/qa/metrics-v2.json").read_text())
     abl = json.loads(Path("data/qa/ablations-v2.json").read_text())
     model = main["model"]
+    conv = main["convergence"]
+    duel = main["duel_verdict"]
+    v1 = main["v1_reference"]
     lines = [
-        "## smoke-train-v2 -- the reloaded scaled vertical",
+        "## smoke-train-v2 -- the convergence duel (session-0011)",
         "",
-        f"- **verdict**: `{main['verdict']['status']}` -- {main['verdict']['reason']}",
-        f"- val loss: {model['val_loss_first']:.4f} -> {model['val_loss_last']:.4f}",
+        f"- **duel verdict**: `{duel['status']}` -- {duel['reason']}",
+        f"- main `{main['label']}` verdict: `{main['verdict']['status']}`",
+        f"- val loss: {model['val_loss_first']:.4f} -> {model['val_loss_last']:.4f} "
+        f"(plateau {model['val_loss_plateau']:.4f})",
         f"- top-1: {model['top1_accuracy']:.4f} vs set-local baseline "
         f"{main['baseline']['val_accuracy']:.4f}",
         f"- legality: {main['legality']['legal']}/{main['legality']['sampled']}",
+        f"- plateau: reached={conv['plateau_reached']} after {conv['epochs_run']} epochs / "
+        f"{conv['steps']} steps (patience {conv['patience']}, eps {conv['eps']})",
+        f"- grad norm: first {conv['grad_norm_first']:.3e} -> last {conv['grad_norm_last']:.3e} "
+        f"(max {conv['grad_norm_max']:.3e})",
         "",
-        "### ablations (pre-registered in LOG/session-0010-preregistration.md)",
+        f"v1 reference (tiny, sgd lr={v1['lr']}, {v1['epochs']} epochs): "
+        f"top-1 {v1['v1_at_v2_set']['top1_accuracy']:.4f} on the shared eval set "
+        f"({v1['v1_at_v2_set']['val_positions']} positions)",
         "",
-        "| ablation | top-1 | delta vs main | verdict |",
-        "|---|---|---|---|",
+        "### the frozen 2x2 -- every delta tested with McNemar against v1 on the SAME eval set",
+        "",
+        "| configuration | top-1 | delta vs v1 | McNemar z | p | method | favours | significant |"
+        " steps | plateau | verdict |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
-    for a in abl["ablations"]:
+    rows = [(main["label"], main), *((a["label"], a) for a in abl["ablations"])]
+    for label, entry in rows:
+        mc = entry["mcnemar_vs_v1"]
         lines.append(
-            f"| {a['label']} | {a['model']['top1_accuracy']:.4f} | "
-            f"{a['delta_top1_vs_main']:+.4f} | {a['verdict']['status']} |"
+            f"| {label} | {entry['model']['top1_accuracy']:.4f} | "
+            f"{entry['top1_delta_vs_v1']:+.4f} | {mc['z']:.3f} | {mc['p_value']:.4g} | "
+            f"{mc['method']} | {mc['favours']} | {mc['significant']} | "
+            f"{entry['convergence']['steps']} | {entry['convergence']['plateau_reached']} | "
+            f"{entry['verdict']['status']} |"
         )
     text = "\n".join(lines)
     Path("data/qa/summary.md").write_text(text)

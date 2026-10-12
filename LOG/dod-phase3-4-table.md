@@ -46,7 +46,7 @@ Legend: **✓ met** — artifact and test exist · **✓+** — met and strength
    so a shard could not serve as training data. Now writes `uci` + `start_fen`.
 3. **`default_engine` swallowed its failure.** A bare `except FileNotFoundError: pass` hid the
    fallback to MOCK. Now named, and the silence guard prevents the pattern from returning.
-4. **No geometric-bias module existed.** §4.2 described it; nothing implemented it. Now
+4. **No geometric-bias module existed.** `§4.2` described it; nothing implemented it. Now
    `model/geometry.py`, with an exactly-zero ablation.
 
 ## Deviations from the §5 letter — stated openly (Article 5)

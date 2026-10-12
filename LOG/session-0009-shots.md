@@ -15,7 +15,7 @@ here. The preflight (unified eval set + interpretation note) is in
 
 - **Run:** https://github.com/feromirdanton-ui/caissa/actions/runs/38186826762
 - **Dispatched:** 2026-10-12T00:07:41Z
-- **head_sha:** `ff7e2813` — **the session-0008 HEAD, NOT THE PREFLIGHT COMMIT.**
+- **head_sha:** `ff7e2813` — **the session-0008 HEAD, NOT the preflight commit.**
 - **Why void:** a race between `GITHUB_UPDATE_A_REFERENCE` and the dispatch. The dispatch resolved
   `main` before the new commit `584517fd` was visible to the workflow resolver, so the run started
   on the OLD tree — it would have measured the *confounded* eval set the preflight exists to fix.

@@ -43,12 +43,14 @@ INVALID is a **defect, not a finding**: the run is **RED** (exit non-zero), a FA
 written in place of the metrics, and no verdict word is available. This is enforced in code, at two
 levels, so no future loop can forget it:
 
-1. **In the model** -- `NumpyHistoryModel.train_step` raises `NonFiniteLossError` on the first
-   non-finite loss, and again if the parameters go non-finite after the update. Every caller is
-   therefore incapable of stepping past a divergence.
-2. **In the writer** -- `assert_finite` walks the metrics structure and refuses to persist a
-   non-finite number; `train_configuration` writes `FAILURE-<label>.json` (schema
-   `caissa-smoke-train-v2-failure/1`) carrying the cause and the partial curve.
+1. **In the training loop** -- `smoke_train_v2_loop.train_configuration` checks the loss is finite
+   on *every* step (a non-finite loss raises `DivergenceError`) and checks the WEIGHTS every
+   `guard_every` steps (`parameters_finite`), because a finite loss this step does not prove finite
+   weights -- a large update can push a weight to `inf` and the next step is the first to notice.
+   On divergence it writes `FAILURE-<label>.json` (schema `caissa-smoke-train-v2-failure/1`)
+   carrying the cause and the partial curve, and re-raises `SystemExit(3)`.
+2. **In the writer** -- `smoke_metrics.assert_finite` walks the metrics structure and refuses to
+   persist a non-finite number, so the artifact that lands is either honest or absent.
 
 A green run with a dead model is thereby architecturally impossible -- the last member of the
 "green but dead" family is closed.
@@ -78,8 +80,7 @@ decidable against it.
 Chosen **before the shot** from the session-0009 reproduction already in the repo
 (`scripts/repro_nan.py`): `lr=0.05` diverges (loss 3.44 -> 27.6, rising); `lr<=0.01` decreases.
 This session takes the **top of the stable range, 0.01** -- the more demanding of the two safe
-values, not the gentlest. It is fixed here and **not moved after the shot** (task rule: "thresholds
-and lr do not move after the shot").
+values, not the gentlest. It is fixed here and **not moved after the shot** (task rule: "thresholds and lr do not move after the shot").
 
 Interpretation rule: **an lr is part of an architecture's price.** v1 keeps its own stable rate
 (`v1_lr = 0.05`); v2 runs at its own stable rate (`0.01`). Neither model is handicapped to flatter

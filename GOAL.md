@@ -78,7 +78,7 @@ generating "training results".
 13. **Phase closure: green run + tag + LOG + human signature** (ADR-0004, Article C). The agent
     *requests* acceptance — it does not declare it.
 14. **The manifest is a certification of truth, not a journal** (ADR-0004, Article D). A record is
-    created only after verifying the sha256 of the written file; a `200`-instead-of-206 and a
+    created only after verifying the sha256 of the written file; a `200`-instead-of-`206` and a
     `416` are loud failures, never silent records.
 15. **Two speeds, one signature** (ADR-0011). The *fast lane* is cheap, runs every session and
     needs no network: checks that make mistakes visible. The *deep lane* is one real experiment per

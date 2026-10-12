@@ -1,13 +1,20 @@
-# smoke-train-v2 -- the scaled vertical (session-0008, deep lane #2, ADR-0011).
+# smoke-train-v2 -- the convergence duel (session-0011; scaled in session-0008, reloaded in 0010).
 #
 # v1 (`configs/smoke-train.yaml`) proved the composition on real games with K=0 and a linear head.
-# v2 asks whether more capacity AND move history raise top-1 move accuracy, and then attributes the
-# change to an organ with two ablations run from the SAME shards and the SAME split seed.
+# The v2 family asks whether more capacity AND move history raise top-1 move accuracy, and then
+# attributes the change to an organ by ablation from the SAME shards and the SAME split seed.
 #
-# The decision rule is NOT in this file: it is pre-registered, before dispatch, in
-# LOG/session-0010-preregistration.md. `success_threshold` is copied here so the script can print
-# the verdict, but the number is the one written in that file first -- moving it here after seeing
-# the metrics would be exactly the retouching ADR-0011 sec.5 forbids.
+# Session-0011 changes the MEASUREMENT INSTRUMENT, not the model family: every configuration trains
+# to its OWN plateau (session-0010 used a fixed step count, which judges the stopwatch rather than
+# the players), one recorded optimizer replaces SGD, and every delta is tested with McNemar on the
+# same eval set.
+#
+# The decision rule is NOT invented here. It is pre-registered in LOG/session-0011-preregistration.md,
+# committed BEFORE the run: SUCCESS = at least one configuration beats v1@set with McNemar p < 0.05;
+# DEAD = nothing beats v1; INCONCLUSIVE = above v1 but not significant, or a ceiling before plateau;
+# INVALID = any non-finite metric or legality < 100%. `progress_marker: 0.30` is reported but never
+# decides the verdict. Moving any of it after seeing the metrics is exactly the retouching ADR-0011
+# section 5 forbids.
 #
 # Weights are a disposable run artifact -- never a git object (Article 8).
 
@@ -18,56 +25,64 @@ metrics: data/qa/metrics-v2.json
 ablations_out: data/qa/ablations-v2.json
 
 history: 8               # K: the last 8 boards before the current one, encoded by a shared encoder
-# The eval set is built ONCE with this K and shared by the main run and BOTH ablations, so a
-# component's contribution is a controlled difference on the SAME positions (session-0009
-# preflight). `no_history` (K=0) reads only the current board of that same window -- it changes
-# the model's input, never the set it is measured on. Without this the K=0 ablation would be
-# scored on a larger set (ply >= 0) than the main run (ply >= 8): a confounder, not an ablation.
+# The eval set is built ONCE with this K and shared by every configuration, so a component's
+# contribution is a controlled difference on the SAME positions (session-0009 preflight). A
+# configuration with a smaller K reads only the suffix of that same window -- it changes the model's
+# input, never the set it is measured on.
 window_history: 8
+
+plateau_patience: 5      # stop after 5 consecutive val-loss evaluations with no improvement
+plateau_eps: 0.0001      # an improvement must beat the best by MORE than this (absolute)
+min_evals: 6             # patience cannot fire before 6 evaluations (a lucky epoch 1 is not a limit)
+max_epochs: 20           # the HARD ceiling; hitting it without a plateau is INCONCLUSIVE, stated
+
 model:
   name: numpy_history
   d_model: 256           # v1 was 128 -> 256
   n_heads: 8             # heads at the same proportion to d_model as v1 (128/4)
-  geometric_bias: true   # the MAIN run carries the prior; ablation #1 removes it
+  geometric_bias: true   # kept ON for all four cells: geometry was ablated in session-0010, and
+                         # re-ablating it here would confound this session's capacity/history axis
 
 val_fraction: 0.05       # split BY GAME, so no game straddles train and val
 seed: 0
-# HONEST SMALL SCALE (session-0010). The driver measured ~0.33 s per train_step on the sandbox at
-# d_model=256, K=8; a 40k x 2 budget would be ~7 h and cannot fit a <= 120-min run. We therefore fix
-# an honest, stated step budget instead of silently timing out or silently truncating. The CRITERION
-# is not touched: v1 is retrained on the SAME budget, so v1@v2-set and v2 share the step count and
-# the comparison stays apples-to-apples.
 max_positions_to_load: 200000
-max_train_positions: 2000    # declared, not hidden: ~0.33 s/step at d_model=256, K=8
-max_val_positions: 400
-epochs: 2
-# lr fixed A PRIORI for session-0010, before any run, from the session-0009 reproduction:
-#   lr=0.05 -> DIVERGED (loss 3.44 -> 27.6) * lr<=0.01 -> decreasing (scripts/repro_nan.py).
-# We take the TOP of the stable range (0.01), the more demanding of the two safe values. Chosen
-# BEFORE the shot and not moved after it (session-0010 pre-registration, item 4).
-lr: 0.01
-v1_reference: true       # retrain v1 (tiny) in the same run and score it on BOTH eval sets
-v1_lr: 0.05              # v1 keeps its own stable rate: an lr is part of an architecture's price
-v1_epochs: 2
+max_train_positions: 60000   # declared, not hidden
+max_val_positions: 10000     # the session-0011 eval set (session-0010 used 400: too small to test)
+budget_minutes: 90           # the runner constraint, stated rather than silently truncated
+
+# One recorded optimizer choice, made BEFORE the shot (LOG/session-0011-preregistration.md section 3):
+# the `0.05` (v1 stable) vs `0.005` (v2 stable) gap of session-0009 is the price of a badly
+# conditioned objective, not evidence of lower capacity. Adam normalizes per-parameter step length,
+# so ONE lr is meaningful across the family and the comparison stops depending on the schedule.
+optimizer: adam
+lr: 0.005
+betas: [0.9, 0.999]
+alpha: 0.05              # the significance level for every McNemar comparison
+
+v1_reference: true       # retrain v1 (tiny) to ITS OWN plateau in the same run, scored on BOTH sets
+v1_lr: 0.05              # v1 keeps its own optimizer (sgd) and stable rate -- lr is part of the price
+
 guard_every: 200         # the NaN guard also checks parameter finiteness every N steps
 sample_moves: 1000       # the Article 1 gate: these must be 100% legal
-budget_minutes: 90       # the runner constraint, stated rather than silently truncated
-success_threshold: 0.30  # pre-registered in LOG/session-0010-preregistration.md
+progress_marker: 0.30    # a progress marker, NOT a gate (session-0011 section 6)
 
-# Two micro-ablations. Each answers a question written down in advance (session-0008 Ablations section):
-#   #1 does the geometric prior pay for itself in top-1 accuracy?
-#   #2 does history context pay for itself in top-1 accuracy?
-# A negative answer is a result: the map of which organ contributes is built from honest zeros.
-# The ablations run at epochs 1: a *relative* comparison of two components is a weaker claim than
-# the main run's absolute number -- stated, not hidden.
-ablations:
-  - name: no_geometry_bias
+# The frozen 2x2 of the v2 family: {d_model 128,256} x {K 0,8}. The main run above is d256@K8; these
+# three close the factorial. Each answers a question written down in advance, and a negative answer
+# is a result: the map of which organ contributes is built from honest zeros.
+configurations:
+  - name: d128_k8          # the capacity axis at fixed history
     overrides:
       model:
-        geometric_bias: false
-      epochs: 1
-  - name: no_history
+        d_model: 128
+        n_heads: 4
+  - name: d256_k0          # the history axis at fixed capacity (window stays at 8)
     overrides:
       history: 0
-      window_history: 8   # keep the MAIN run's eval set; only the model's input shrinks
-      epochs: 1
+      window_history: 8
+  - name: d128_k0          # closes the factorial
+    overrides:
+      history: 0
+      window_history: 8
+      model:
+        d_model: 128
+        n_heads: 4

@@ -185,13 +185,16 @@ class NumpyHistoryModel:
 
     # --- backward ----------------------------------------------------------------
 
-    def train_step(
-        self, board: chess.Board, x_hist: np.ndarray, target: chess.Move, lr: float
-    ) -> float:
-        """One SGD step. Returns the loss BEFORE the update (so a curve is comparable)."""
-        if lr == 0.0:
-            return self.loss(board, x_hist, target)
+    def gradients(
+        self, board: chess.Board, x_hist: np.ndarray, target: chess.Move
+    ) -> tuple[float, dict[str, np.ndarray]]:
+        """The loss and the gradient of every learned tensor, WITHOUT touching the weights.
 
+        Split out of `train_step` so an optimizer other than plain SGD can consume the same
+        gradient object. The arithmetic is byte-for-byte the one `train_step` always used -- this
+        is a refactor, not a new path -- so the finite-difference test that has guarded this
+        backprop since session 0008 keeps guarding it.
+        """
         # The SAME forward the objective uses (geometry included) — see `_forward`'s docstring.
         E, c, h, a, b, logits = self._forward(x_hist)
 
@@ -214,23 +217,57 @@ class NumpyHistoryModel:
         d_head_to = np.einsum("ht,d->hdt", db, h)
         dh = np.einsum("hf,hdf->d", da, self.head_from) + np.einsum("ht,hdt->d", db, self.head_to)
 
+        grads: dict[str, np.ndarray] = {}
         if self.geometry_bias:
-            self.geom_scale -= lr * float(np.sum(dlogits * GEOMETRY_TABLE))
+            grads["geom_scale"] = np.array(float(np.sum(dlogits * GEOMETRY_TABLE)))
 
         # --- mixer ---
         draw_h = dh * (1.0 - h * h)
-        d_w_mix = np.outer(c, draw_h)
+        grads["w_mix"] = np.outer(c, draw_h)
+        grads["b_mix"] = draw_h
         dc = draw_h @ self.w_mix.T
 
         # --- encoder ---
         dE = dc.reshape(E.shape) * (1.0 - E * E)
-        d_w_enc = x_hist.T @ dE
-        d_b_enc = dE.sum(axis=0)
+        grads["w_enc"] = x_hist.T @ dE
+        grads["b_enc"] = dE.sum(axis=0)
+        grads["head_from"] = d_head_from
+        grads["head_to"] = d_head_to
+        return loss, grads
 
-        self.head_from -= lr * d_head_from
-        self.head_to -= lr * d_head_to
-        self.w_mix -= lr * d_w_mix
-        self.b_mix -= lr * draw_h
-        self.w_enc -= lr * d_w_enc
-        self.b_enc -= lr * d_b_enc
+    def train_step(
+        self, board: chess.Board, x_hist: np.ndarray, target: chess.Move, lr: float
+    ) -> float:
+        """One SGD step. Returns the loss BEFORE the update (so a curve is comparable).
+
+        Kept as the plain-SGD entry point (``lr=0.0`` is a pure measurement) so the v1 family's
+        historical behaviour, and every test that pins it, are unchanged by the Adam refactor.
+        """
+        if lr == 0.0:
+            return self.loss(board, x_hist, target)
+
+        loss, grads = self.gradients(board, x_hist, target)
+        if self.geometry_bias:
+            self.geom_scale -= lr * float(grads["geom_scale"])
+        self.head_from -= lr * grads["head_from"]
+        self.head_to -= lr * grads["head_to"]
+        self.w_mix -= lr * grads["w_mix"]
+        self.b_mix -= lr * grads["b_mix"]
+        self.w_enc -= lr * grads["w_enc"]
+        self.b_enc -= lr * grads["b_enc"]
         return loss
+
+    def adam_step(
+        self, board: chess.Board, x_hist: np.ndarray, target: chess.Move, adam, lr: float
+    ) -> tuple[float, float]:
+        """One Adam step. Returns ``(loss_before_update, grad_norm)``.
+
+        ``grad_norm`` is returned rather than logged internally: the caller decides how often a
+        norm is printed, and a training loop holding the number can put it in the artifact.
+        """
+        from caissa.training.adam import grad_norm
+
+        loss, grads = self.gradients(board, x_hist, target)
+        norm = grad_norm(grads)
+        adam.step(self, grads, lr)
+        return loss, norm

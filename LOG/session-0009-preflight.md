@@ -1,6 +1,6 @@
 # Session 0009 — PREFLIGHT (written BEFORE the shot)
 
-**Written before `smoke-train-vb` is dispatched.** This file records the two preflight checks the
+**Written before `smoke-train-v2` is dispatched.** This file records the two preflight checks the
 session-0009 brief requires, and it is committed before the run so the repository history proves
 the checks preceded the numbers. The pre-registered thresholds in
 `LOG/session-0008-preregistration.md` are **not touched** — this is a confounder fix and an

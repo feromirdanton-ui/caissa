@@ -12,6 +12,7 @@ commit, is recorded as what it is. There are no silent retries.
 | 0012-1 | 0012 | materialize | [38250168401](https://github.com/feromirdanton-ui/caissa/actions/runs/38250168401) | `266bf566` | **VOID** | payload verified (152 blobs) and commit created, but the push was rejected: the Actions `GITHUB_TOKEN` cannot write `.github/workflows/*`. Platform limit, not a transport bug. |
 | 0012-2 | 0012 | materialize | [38251100097](https://github.com/feromirdanton-ui/caissa/actions/runs/38251100097) | `266bf566` | success | published 151 files; `main` → `63dac0a0` |
 | 0012-3 | 0012 | smoke-train-v2 | [38251372886](https://github.com/feromirdanton-ui/caissa/actions/runs/38251372886) | `bf379d66` | success | **the shot.** Artifact `smoke-train-v2-metrics` id `11748652041`. Machine printed SUCCESS; corrected verdict **DEAD** (see `LOG/session-0012.md`). |
+| 0012-4 | 0012 | materialize | [38253349593](https://github.com/feromirdanton-ui/caissa/actions/runs/38253349593) | `bf379d66` | success | published the session-0012 files (LOG, ADR-0012, the polarity fix and its test); `main` → `5d8229d6` |
 
 ## Notes
 

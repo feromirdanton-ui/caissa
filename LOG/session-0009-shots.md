@@ -36,3 +36,17 @@ here. The preflight (unified eval set + interpretation note) is in
 
 *Registry opened by the Caïssa-1 construction agent, session 0009. Entries are never edited or
 removed; a superseded shot is marked VOID and left in place.*
+
+---
+
+## Shot 2 — VERDICT RECORDED (appended after the run completed)
+
+- **Run:** https://github.com/feromirdanton-ui/caissa/actions/runs/38186843291
+- **conclusion:** `success` (all steps green) · **head_sha:** `584517fd`
+- **Verdict (verbatim, the rule's own output):** **INCONCLUSIVE** —
+  *"top-1 0.0925 beats the baseline but is below 0.30"*
+- **Honest reading:** the run **diverged** (`train_loss_curve` = `[NaN, NaN]` for the main run and
+  both ablations; identical top-1 0.0925 across all three). The number is not a measurement; the
+  ablation deltas are void. Cause reproduced: `lr=0.05` is past this model's stability edge
+  (`scripts/repro_nan.py`). Full analysis: `LOG/session-0009.md`.
+- **Metrics artifact:** `smoke-train-v2-metrics` (id `11719948779`).

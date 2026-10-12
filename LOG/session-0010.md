@@ -71,11 +71,39 @@ workflow's own header records, and the reason the CI driver lives in `scripts/`,
 
 ## Evidence — the run
 
-- **Shot:** https://github.com/feromirdanton-ui/caissa/actions/runs/38212904808
-- **Dispatched:** 2026-10-12T06:31:03Z · `head_sha=0914f99d22771d8ea2ca2298ac064c6ced1d6e51`
-  (verified equal to the merged commit — the 0009 ref/dispatch race did **not** recur; no VOID entry).
+Two dispatches, both recorded (the registry is append-only).
+
 - **CI on the branch:** run [38212667374](https://github.com/feromirdanton-ui/caissa/actions/runs/38212667374)
   (`ci.yml` #31) → **success** on `46323362`.
+
+### Shot 1 — did not start (a defect, not a result)
+
+- **Run:** https://github.com/feromirdanton-ui/caissa/actions/runs/38212904808 · dispatched
+  2026-10-12T06:31:03Z, ended 06:31:12Z (9 s), conclusion `failure`, `head_sha=0914f99d`.
+- The job failed at **step 1, “Set up job”** — before any training step. The runner could not resolve
+  the pinned action:
+
+  > `##[error]Unable to resolve action actions/setup-python@0b93645e9fe7318ecaed2b359559ac225c90a2b2`
+
+  **Zero artifacts**, **no training**. A run that never started is not a measurement, so it is not
+  fed to the pre-registered rule. The diagnosis came from the run's own log, not from inference.
+
+**Cause.** The `actions/setup-python` pin in `smoke-train-v2.yml` dropped one hex character (`a`)
+against the valid v5.3.0 SHA `ci.yml` uses (`0b93645e9fea7318ecaed2b359559ac225c90a2b`). Both are 40
+hex chars, so the bad pin is well-formed and YAML-valid — it is simply not a real commit. Confirmed
+toward the API: the good SHA → HTTP 200, the bad SHA → HTTP 422; the file's other two pins
+(`actions/checkout`, `actions/upload-artifact`) resolve, so this was the only broken line.
+
+**Fix.** Commit `fd16b091` (parent `07761df5`) restores the exact v5.3.0 SHA. One line, nothing else;
+the pre-registration, thresholds, and `lr` are untouched. Published byte-exact over the API (blob
+`a4ff20af…`, `git hash-object`-verified before and after, ADR-0009).
+
+### Shot 2 — the shot (re-fire)
+
+- **Run:** https://github.com/feromirdanton-ui/caissa/actions/runs/38213524325
+- **Dispatched:** 2026-10-12T06:38:35Z · `head_sha=fd16b0913e80737a9ffd8f9c930da2e6ff792e15`
+  (verified equal to the fix commit — no ref/dispatch race; no VOID). Identical inputs to shot 1.
+- **Status:** in flight.
 
 ## Verdict
 

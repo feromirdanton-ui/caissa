@@ -1,54 +1,29 @@
 name: smoke-train-stability
-
-# Deep lane #3 (session-0013): diagnose the v2 divergence. Session-0012 established THAT the v2
-# family diverges (val loss 3.35 -> 25.2, grad norm 4.8 -> 648) but not WHY. This run asks the
-# narrower, answerable question: does ANY configuration of the v2 family converge at all?
-#
-# The F0-F4 factorial is a set of CONFIG FLAGS, not code branches -- the same loop, the same model,
-# the same eval set:
-#   F0  base            -- the control; expected to diverge (reproduces session-0012)
-#   F1  grad clip       -- global-norm clipping (a symptom dampener)
-#   F2  cosine logits   -- bounded logits (removes the divergence's CAUSE)
-#   F3  optimizer       -- SGD at 0.01 (the stable range session-0009 found)
-#   F4  F1 + F2         -- clip AND cosine logits
-#
-# Decision rule, pre-registered in LOG/session-0013-preregistration.md and NOT retouched here:
-#   CONVERGES = final val loss < first AND grad norm never exceeds 10x its first AND legality 100%
-#   DIVERGES  = final val loss > 2x the best
-#   anything between is recorded as facts, not a verdict.
-# The duel with v1 is NOT run: a configuration earns the right to a rematch by converging first,
-# under its own pre-registration (0014).
-#
-# A divergence is RECORDED, never hidden -- but the run still ends RED (the driver exits non-zero
-# and a FAILURE artifact is written), so a factorial containing a blow-up can never be read as a
-# clean result. The metrics artifact is uploaded with `if: always()` so the evidence survives the
-# red run.
-#
-# The shell logic lives in scripts/smoke_train_stability_ci.py, not inline (ADR-0009).
-
+# Deep lane #3 (session-0013): does ANY configuration of the v2 family converge?
+# The F0-F4 factorial is config flags, not code branches. The decision rule is pre-registered in
+# LOG/session-0013-preregistration.md and is not retouched here. All shell logic lives in
+# scripts/smoke_train_stability_ci.py (ADR-0009), so this file stays small enough to publish by
+# hand (ADR-0012: transcription is only trusted below 2 KB).
 on:
   workflow_dispatch:
     inputs:
       lichess_month:
-        description: "Lichess month to sample (YYYY-MM)"
+        description: "Lichess month (YYYY-MM)"
         required: false
         default: "2013-01"
       train_positions:
-        description: "Training positions to load from the shards"
+        description: "training positions"
         required: false
         default: "2000"
       shard_size:
         description: "games per shard"
         required: false
         default: "10000"
-
 concurrency:
   group: smoke-train-stability-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   stability:
-    name: F0-F4 fix factorial (data -> shards -> converge? -> metrics)
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -57,74 +32,17 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-
-      - name: Install
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e ".[dev]"
-
-      - name: Clone guard -- data must never be tracked
-        run: |
-          bad=$(git ls-files -i -c --exclude-standard)
-          if [ -n "$bad" ]; then
-            echo "::error::tracked files are ignored by .gitignore:"; echo "$bad"; exit 1
-          fi
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "::error::the working tree is dirty before the run:"; git status --porcelain; exit 1
-          fi
-
-      - name: Pull the day prefix (real Lichess games, resumable, sha256-certified)
+      - run: pip install -e ".[dev]"
+      - name: The F0-F4 stability factorial (data -> shards -> converge? -> metrics)
         env:
           MONTH: ${{ inputs.lichess_month }}
-        run: python scripts/smoke_train_stability_ci.py fetch-prefix
-
-      - name: Shard the prefix (stream -> filter -> dedup -> jsonl.zst + QA)
-        env:
-          MONTH: ${{ inputs.lichess_month }}
-          SHARD_SIZE: ${{ inputs.shard_size }}
-        run: python scripts/smoke_train_stability_ci.py shard
-
-      - name: Verify every shard sha256 against the file on disk
-        run: python scripts/smoke_train_stability_ci.py verify-shards
-
-      - name: Override the position budget from the dispatch input
-        env:
           TRAIN_POSITIONS: ${{ inputs.train_positions }}
-        run: python scripts/smoke_train_stability_ci.py override
-
-      - name: Forensics -- WHERE does the divergence start? (short diagnostic, step 1)
-        run: python -m caissa.training.smoke_train_v2 --config configs/smoke-train-forensics.yaml
-        env:
-          PYTHONUNBUFFERED: "1"
-
-      - name: smoke-train-stability -- the F0-F4 factorial
-        id: train
-        run: python -m caissa.training.smoke_train_v2 --config configs/smoke-train-stability.ci.yaml
-        env:
-          PYTHONUNBUFFERED: "1"
-
-      - name: Divergence guard -- a FAILURE artifact must fail the run
-        if: always()
-        run: python scripts/smoke_train_stability_ci.py guard
-
-      - name: Convergence summary
-        if: always()
-        run: python scripts/smoke_train_stability_ci.py summary
-
-      - name: Upload metrics + ablitions + shard QA
+          SHARD_SIZE: ${{ inputs.shard_size }}
+        run: python scripts/smoke_train_stability_ci.py all
+      - name: Upload metrics + forensics + shard QA
         if: always()
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
         with:
           name: smoke-train-stability-metrics
-          path: |
-            data/qa/metrics-stability.json
-            data/qa/ablations-stability.json
-            data/qa/processing.json
-            data/qa/summary.md
-            data/qa/FAILURE-*.json
-            data/qa/forensics/*.json
+          path: data/qa/
           if-no-files-found: warn
-
-      - name: Disk after
-        if: always()
-        run: df -h /

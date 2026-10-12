@@ -1,0 +1,80 @@
+name: Materialize a payload tree (ADR-0012, transport B)
+
+# Bootstrap transport for a change set too large to transcribe by hand.
+#
+# Motivation (ADR-0012, three incidents): 0005 published an incomplete tree, 0008 landed a file
+# as mojibake (blob sha d34a2329 != local af336cd0), 0011 lost two base64 characters by
+# transcription (preregistration blob bfea76b5 != local 7e0e7530). In every case a model typed
+# the bytes. Here the tree is built mechanically, uploaded as an opaque blob (the bytes are
+# never typed), and this workflow -- which is small enough to publish by hand -- reconstructs it.
+#
+# It refuses to commit unless EVERY file matches the sha recorded in the manifest, so a corrupted
+# payload is a loud red failure and never a quietly wrong tree.
+
+on:
+  workflow_dispatch:
+    inputs:
+      enc_url:
+        description: HTTPS URL of the encrypted tree (public, opaque)
+        required: true
+      key:
+        description: Decryption passphrase
+        required: true
+      expect_sha256:
+        description: sha256 of the encrypted payload, checked before decrypting
+        required: true
+      message:
+        description: Commit message
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Download and pin the payload
+        env:
+          ENC_URL: ${{ inputs.enc_url }}
+          EXPECT: ${{ inputs.expect_sha256 }}
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --retry 3 "$ENC_URL" -o /tmp/tree.enc
+          got="$(sha256sum /tmp/tree.enc | cut -d' ' -f1)"
+          [ "$got" = "$EXPECT" ] || { echo "payload sha256 $got != $EXPECT" >&2; exit 1; }
+          echo "payload sha256 verified: $got"
+
+      - name: Decrypt, extract and verify every blob sha (ADR-0012 duty)
+        env:
+          KEY: ${{ inputs.key }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$KEY" | openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 \
+            -pass stdin -in /tmp/tree.enc -out /tmp/tree.tgz
+          mkdir -p /tmp/payload
+          tar -xzf /tmp/tree.tgz -C /tmp/payload
+          n=0
+          while IFS=$'\t' read -r want path; do
+            got="$(cd /tmp/payload/tree && git hash-object "$path")"
+            [ "$got" = "$want" ] || { echo "BLOB MISMATCH $path: $got != $want" >&2; exit 1; }
+            n=$((n + 1))
+          done < /tmp/payload/manifest-blobs.txt
+          echo "verified $n blobs against the manifest"
+
+      - name: Overlay the payload and commit
+        env:
+          MSG: ${{ inputs.message }}
+        run: |
+          set -euo pipefail
+          cp -a /tmp/payload/tree/. .
+          git add -A
+          git -c user.name="Caissa Build Agent" \
+              -c user.email="caissa-build@users.noreply.github.com" commit -m "$MSG"
+          git push origin HEAD:main
+          echo "committed $(git rev-parse HEAD)"

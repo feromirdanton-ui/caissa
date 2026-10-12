@@ -1,15 +1,22 @@
 name: smoke-train-v2
 
 # Deep lane #2 (ADR-0011): scale the <<Vertical>>. The clean runner pulls the honest day-prefix,
-# shards it, then trains the RELOADED v2 config on REAL games and runs both micro-ablations from
-# the same shards and the same split seed. Metrics and ablation deltas are uploaded as artifacts;
-# data/** is ignored by path and the clone guard below enforces it (Article 8 -- weights and data
-# never enter git).
+# shards it, then trains the v2 family on REAL games: the main configuration, the three cells that
+# close the {128,256} x {K 0,8} factorial, and the v1 reference -- all on the SAME eval set and the
+# SAME split seed. Metrics are uploaded as artifacts; data/** is ignored by path and the clone guard
+# below enforces it (Article 8 -- weights and data never enter git).
 #
-# The decision rule lives in LOG/session-0010-preregistration.md and was committed BEFORE this run:
-#   SUCCESS top-1 >= 0.30 * DEAD <= the SET-LOCAL baseline * INCONCLUSIVE in between.
-#   INVALID if ANY loss/metric is non-finite (the instrument is destroyed) OR legality < 100%.
-# It is not retouched here. A negative result is recorded with the same care as a positive one.
+# Session-0011's instrument change (LOG/session-0011-preregistration.md, committed BEFORE this run):
+#   * every configuration trains to its OWN PLATEAU (patience 5, eps 1e-4, hard ceiling 20 epochs),
+#     because equal step counts judge the stopwatch rather than the players;
+#   * the recorded optimizer is Adam at one lr -- the v1 reference keeps SGD at its own stable rate;
+#   * every delta is tested with McNEMAR on the paired correctness vectors (z, p and the 2x2 table).
+# Decision rule, pre-registered and NOT retouched here:
+#   SUCCESS = some configuration beats v1@set with McNemar p < 0.05 * DEAD = nothing beats v1 *
+#   INCONCLUSIVE = above v1 but not significant, or a ceiling before any plateau *
+#   INVALID = any non-finite metric OR legality < 100%.
+# `top-1 >= 0.30` is a progress marker, never a gate. A negative result is recorded with the same
+# care as a positive one.
 #
 # The shell logic lives in scripts/smoke_train_v2_ci.py, not inline: an ~8 KB YAML kept arriving at
 # the API with a differing blob sha, while every smaller file published byte-identically (ADR-0009).

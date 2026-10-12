@@ -64,6 +64,13 @@ def _decide(main_verdicts: list[dict], comparisons: list[dict]) -> dict:
     DEAD        -- no configuration's top-1 exceeds v1's on that set
     INCONCLUSIVE -- some configuration is above v1 but nothing is significant, OR a configuration
                     never reached its plateau (the ceiling fired first)
+
+    Polarity (session-0012): the comparison is built as ``mcnemar(correctness, v1_correct)``, so
+    ``a`` is the v2 configuration and ``b`` is the v1 reference -- ``favours == "a"`` is a v2 win
+    and ``favours == "b"`` is a v1 win. Session-0011's rule tested ``favours == "b"``, which read a
+    v1 win as a v2 win: a run in which EVERY configuration lost to v1 (all deltas negative) was
+    reported as SUCCESS. The delta sign is the independent witness, so a winner must also have a
+    positive delta; the two can no longer disagree.
     """
     if not any(v["status"] == "PLATEAUED" for v in main_verdicts):
         return {
@@ -74,7 +81,11 @@ def _decide(main_verdicts: list[dict], comparisons: list[dict]) -> dict:
             ),
         }
     winners = [
-        c for c in comparisons if c["mcnemar"]["favours"] == "b" and c["mcnemar"]["significant"]
+        c
+        for c in comparisons
+        if c["mcnemar"]["favours"] == "a"
+        and c["mcnemar"]["significant"]
+        and c["top1_delta_vs_v1"] > 0
     ]
     if winners:
         best = max(winners, key=lambda c: c["top1_delta_vs_v1"])

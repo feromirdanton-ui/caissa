@@ -1,0 +1,53 @@
+# Local preview of the F0-F4 factorial (session-0013) -- NOT the CI run, NOT a verdict.
+# A tiny budget to validate the config-override plumbing and preview which fixes converge.
+scale: small
+lane: deep
+shards: data/shards
+metrics: data/qa/metrics-stability-preview.json
+ablations_out: data/qa/ablations-stability-preview.json
+history: 8
+window_history: 8
+plateau_patience: 2
+plateau_eps: 0.0001
+min_evals: 2
+max_epochs: 2
+model:
+  name: numpy_history
+  d_model: 256
+  n_heads: 8
+  geometric_bias: true
+val_fraction: 0.05
+seed: 0
+max_positions_to_load: 20000
+max_train_positions: 2000
+max_val_positions: 1000
+budget_minutes: 30
+optimizer: adam
+lr: 0.005
+betas: [0.9, 0.999]
+alpha: 0.05
+v1_reference: false
+v1_lr: 0.05
+guard_every: 200
+sample_moves: 200
+progress_marker: 0.30
+tolerate_divergence: true
+configurations:
+  - name: F1_grad_clip
+    overrides:
+      max_grad_norm: 1.0
+  - name: F2_cosine_logits
+    overrides:
+      model:
+        logit_norm: true
+        logit_scale: 8.0
+  - name: F3_sgd_0p01
+    overrides:
+      optimizer: sgd
+      lr: 0.01
+  - name: F4_clip_and_cosine
+    overrides:
+      max_grad_norm: 1.0
+      model:
+        logit_norm: true
+        logit_scale: 8.0

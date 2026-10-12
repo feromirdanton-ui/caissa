@@ -255,3 +255,98 @@ def test_geometry_bias_actually_affects_the_training_loss() -> None:
     on.train_step(board, x, move, lr=1e-2)
     off.train_step(board, x, move, lr=1e-2)
     assert not np.allclose(on.w_enc, off.w_enc), "the bias did not reach the input gradient"
+
+
+# --- session-0013 F2: cosine (bounded) logits ---------------------------------------------------
+
+
+def test_cosine_logits_gradient_matches_finite_differences() -> None:
+    """F2's normalisation Jacobian must be exact -- a wrong one trains a different objective.
+
+    The cosine head adds a unit-normalisation between the projections and the logits, so the
+    backward must push the gradient through ``(I - a_hat a_hat^T)/||a||``. That Jacobian is easy to
+    get subtly wrong (a missing projection term still trains, just wrongly), so it is checked
+    against a central finite difference on a real position, exactly as the plain head is.
+    """
+    board = _position()
+    move = _a_move(board)
+    x = _history(board, k=3)
+    lr = 1e-3
+    eps = 1e-6
+
+    model = NumpyHistoryModel(
+        history=3, d_model=12, n_heads=2, geometry_bias=True, seed=7, logit_norm=True
+    )
+    before = _snapshot(model)
+    model.train_step(board, x, move, lr=lr)
+    after = _snapshot(model)
+    analytic = {name: (before[name] - after[name]) / lr for name in PARAMS}
+
+    numeric: dict[str, np.ndarray] = {}
+    for name in PARAMS:
+        ref = NumpyHistoryModel(
+            history=3, d_model=12, n_heads=2, geometry_bias=True, seed=7, logit_norm=True
+        )
+        grad = np.zeros_like(before[name], dtype=float)
+        flat = grad.reshape(-1)
+        base = np.array(before[name], copy=True)
+        for idx in range(flat.size):
+            for sign, store in ((+1, "plus"), (-1, "minus")):
+                shifted = base.reshape(-1).copy()
+                shifted[idx] += sign * eps
+                setattr(ref, name, shifted.reshape(base.shape))
+                value = _total_loss(ref, x, board, move)
+                if store == "plus":
+                    plus = value
+                else:
+                    minus = value
+            flat[idx] = (plus - minus) / (2 * eps)
+        numeric[name] = grad
+
+    for name in PARAMS:
+        np.testing.assert_allclose(
+            analytic[name],
+            numeric[name],
+            rtol=1e-4,
+            atol=1e-6,
+            err_msg=f"cosine-head gradient mismatch for {name!r}",
+        )
+
+
+def test_cosine_logits_are_bounded_however_large_the_weights_grow() -> None:
+    """The F2 mechanism: logits stay bounded as the head weights grow -- the divergence's cause removed.
+
+    Session-0012's blow-up was unbounded bilinear logits. With cosine logits the score is a scaled
+    inner product of UNIT vectors, so ``|logit| <= logit_scale * n_heads`` regardless of the weight
+    magnitude. This test scales the head weights by 1e3 and asserts the logits do not move -- which
+    is the property the plain head does NOT have.
+    """
+    board = _position()
+    x = _history(board, k=3)
+    model = NumpyHistoryModel(
+        history=3, d_model=12, n_heads=2, geometry_bias=False, seed=7, logit_norm=True
+    )
+    base = model.logits(x)
+    model.head_from = model.head_from * 1e3
+    model.head_to = model.head_to * 1e3
+    scaled = model.logits(x)
+    np.testing.assert_allclose(base, scaled, rtol=1e-9, atol=1e-9)
+    assert np.max(np.abs(scaled)) <= model.logit_scale * model.n_heads + 1e-9
+
+    # ... while the PLAIN head's logits grow with the weights -- the contrast that makes F2 a fix.
+    plain = NumpyHistoryModel(history=3, d_model=12, n_heads=2, geometry_bias=False, seed=7)
+    plain_base = np.max(np.abs(plain.logits(x)))
+    plain.head_from = plain.head_from * 1e3
+    plain.head_to = plain.head_to * 1e3
+    assert np.max(np.abs(plain.logits(x))) > 1e3 * plain_base
+
+
+def test_cosine_logits_off_by_default_leaves_the_plain_head_unchanged() -> None:
+    """The flag must be inert when off: the v1/v2 historical behaviour cannot move."""
+    board = _position()
+    x = _history(board, k=3)
+    a = NumpyHistoryModel(history=3, d_model=12, n_heads=2, geometry_bias=True, seed=7)
+    b = NumpyHistoryModel(
+        history=3, d_model=12, n_heads=2, geometry_bias=True, seed=7, logit_norm=False
+    )
+    np.testing.assert_allclose(a.logits(x), b.logits(x))

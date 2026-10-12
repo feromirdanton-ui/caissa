@@ -51,6 +51,16 @@ def _normalized_geometry() -> np.ndarray:
 GEOMETRY_TABLE = _normalized_geometry()
 
 
+def _norm(x: np.ndarray) -> np.ndarray:
+    """Per-row L2 norm, floored at ``_EPS`` so unit-normalisation never divides by zero."""
+    return np.maximum(np.sqrt(np.sum(x * x, axis=-1)), _EPS)
+
+
+def _unit(x: np.ndarray) -> np.ndarray:
+    """Per-row unit vector -- the F2 cosine projections (session-0013)."""
+    return x / _norm(x)[..., None]
+
+
 def encode_history(history: list[chess.Board]) -> np.ndarray:
     """Encode ``history`` (oldest first) into a ``(len(history), FEATURE_DIM)`` matrix."""
     if not history:
@@ -71,6 +81,13 @@ class NumpyHistoryModel:
     n_heads: int = 4
     geometry_bias: bool = False
     seed: int = 0
+    # Session-0013 F2: cosine (bounded) logits. When on, each head's from/to projections are
+    # L2-normalised to unit length before the bilinear product, so every logit is a bounded
+    # cosine-like score (|logit| <= logit_scale * n_heads) that CANNOT grow as the weights grow.
+    # The divergence of session-0012 is exactly unbounded heads; this removes the mechanism rather
+    # than damping its symptom. Off by default, so the v1/v2 historical behaviour is unchanged.
+    logit_norm: bool = False
+    logit_scale: float = 8.0
 
     def __post_init__(self) -> None:
         if self.history < 0:
@@ -79,6 +96,8 @@ class NumpyHistoryModel:
             raise ValueError("d_model must be > 0")
         if self.n_heads <= 0:
             raise ValueError("n_heads must be > 0")
+        if self.logit_scale <= 0:
+            raise ValueError("logit_scale must be > 0")
 
         rng = np.random.default_rng(self.seed)
         slots = self.history + 1
@@ -128,7 +147,14 @@ class NumpyHistoryModel:
         h = np.tanh(c @ self.w_mix + self.b_mix)  # (d_model,)
         a = np.einsum("d,hdf->hf", h, self.head_from)  # (n_heads, 64)
         b = np.einsum("d,hdt->ht", h, self.head_to)  # (n_heads, 64)
-        logits = np.einsum("hf,ht->ft", a, b)  # (64, 64)
+        if self.logit_norm:
+            # Cosine logits: unit-normalise each head's projections, then a fixed scale. The RAW
+            # a and b are returned so the backward can rebuild the normalisation Jacobian exactly.
+            a_hat = _unit(a)
+            b_hat = _unit(b)
+            logits = self.logit_scale * np.einsum("hf,ht->ft", a_hat, b_hat)
+        else:
+            logits = np.einsum("hf,ht->ft", a, b)  # (64, 64)
         if self.geometry_bias:
             logits = logits + self.geom_scale * GEOMETRY_TABLE
         return E, c, h, a, b, logits
@@ -211,8 +237,23 @@ class NumpyHistoryModel:
         dlogits[~mask] = 0.0
 
         # --- policy head ---
-        da = np.einsum("ft,ht->hf", dlogits, b)  # (n_heads, 64)
-        db = np.einsum("ft,hf->ht", dlogits, a)  # (n_heads, 64)
+        if self.logit_norm:
+            # Cosine head: logits = scale * a_hat . b_hat, so the gradient w.r.t. the NORMALISED
+            # projections uses the normalised vectors, then is pushed back through the
+            # unit-normalisation Jacobian (I - a_hat a_hat^T)/||a|| to reach head_from/head_to.
+            a_hat = _unit(a)
+            b_hat = _unit(b)
+            da_hat = self.logit_scale * np.einsum("ft,ht->hf", dlogits, b_hat)
+            db_hat = self.logit_scale * np.einsum("ft,hf->ht", dlogits, a_hat)
+            da = (da_hat - a_hat * np.sum(da_hat * a_hat, axis=1, keepdims=True)) / _norm(a)[
+                :, None
+            ]
+            db = (db_hat - b_hat * np.sum(db_hat * b_hat, axis=1, keepdims=True)) / _norm(b)[
+                :, None
+            ]
+        else:
+            da = np.einsum("ft,ht->hf", dlogits, b)  # (n_heads, 64)
+            db = np.einsum("ft,hf->ht", dlogits, a)  # (n_heads, 64)
         d_head_from = np.einsum("hf,d->hdf", da, h)
         d_head_to = np.einsum("ht,d->hdt", db, h)
         dh = np.einsum("hf,hdf->d", da, self.head_from) + np.einsum("ht,hdt->d", db, self.head_to)

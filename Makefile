@@ -42,6 +42,9 @@ smoke-train: ## Deep lane (ADR-0011): the «Vertical» experiment on real shards
 smoke-train-v2: ## Deep lane #2 (session 0008): scaled vertical + two ablations -> metrics artifacts
 	@$(PY) scripts/run.py smoke-train-v2 --config configs/smoke-train-v2.yaml
 
+smoke-train-stability: ## Deep lane #3 (session 0013): the F0-F4 fix factorial -> convergence verdict
+	@$(PY) scripts/run.py smoke-train-v2 --config configs/smoke-train-stability.yaml
+
 data: ## Show the data manifest status (no download)
 	@$(PY) scripts/run.py data
 

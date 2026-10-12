@@ -45,3 +45,28 @@ model has to reproduce.
   limitation.
 - The 2 KB threshold is a policy, not a law of nature: it is the size below which a model's
   transcription has proven reliable in this project's history.
+
+## Addendum (session-0013)
+
+**A fourth incident, and it confirms the threshold.** Publishing the session-0013 stability workflow
+(5158 B) through the API, a model's base64 transcription dropped one letter: `ablations` arrived as
+`ablitions`. The returned blob sha `c74c9c57` ≠ local `d4426138`; `diff` showed exactly one line
+differing. The verify duty caught it before the run, and the fix was **structural, not a retype**:
+the workflow was shrunk to **1860 B** (below the 2 KB threshold) by moving all shell logic into
+`scripts/smoke_train_stability_ci.py`, and the re-published blob sha `a27581b7` matched the local
+`git hash-object` exactly. The lesson is the ADR's own: do not retype a large file, make it small or
+move it mechanically.
+
+**Payload store, decided.** The opaque encrypted payload is stored on **GitHub Releases** as the
+primary, persistent store (a release asset survives far longer than a temporary host and lives in
+the same repository). **litterbox.catbox.moe (72 h)** remains the fallback for a payload that must
+move before a release exists. The decryption key is held in a **repository secret**, never in
+workflow text or in a commit; if the repository's visibility ever changes, the key is **rotated**
+and the payload re-encrypted, because a key that was safe in a private repo is not safe in a public
+one.
+
+**WEEK digest versus ADR-0011 — decided explicitly (no silent drift).** ADR-0011 §3 abolishes
+*ritual without a question*. The WEEK digest is **kept**: it answers a real question — "what changed
+in the project's truth this week, and what is the next stone?" — and it is the only artifact that
+carries the narrative across sessions. It is a fast-lane **check** (a report), which ADR-0011 §1
+explicitly admits. It is not abolished, and it is not left to drift.

@@ -24,11 +24,14 @@ import sys
 import time
 
 from caissa.model.numpy_history import NumpyHistoryModel
-from caissa.training.adam import AdamState
+from caissa.training.adam import AdamState, grad_norm
+from caissa.training.forensics import ForensicsRecorder
 from caissa.training.smoke_metrics import (
+    DIVERGENCE_FACTOR,
     DivergenceError,
     PlateauTracker,
     accuracy_v2,
+    convergence_verdict,
     correctness_v2,
     cross_ruler_baseline,
     mean_loss_v2,
@@ -47,13 +50,19 @@ def build_model(cfg: dict) -> NumpyHistoryModel:
         n_heads=int(model_cfg.get("n_heads", 8)),
         geometry_bias=bool(model_cfg.get("geometric_bias", False)),
         seed=int(cfg.get("seed", 0)),
+        # Session-0013 F2: cosine logits, a config flag rather than a code path.
+        logit_norm=bool(model_cfg.get("logit_norm", False)),
+        logit_scale=float(model_cfg.get("logit_scale", 8.0)),
     )
 
 
 def _train_epochs(prepared, cfg: dict, *, label: str, started: float):
     """Run the plateau-bounded training loop; raise DivergenceError on a non-finite state.
 
-    Returns ``(train_curve, val_curve, steps_total, epochs_run, tracker, grad_norm_curve)``.
+    Returns ``(model, train_curve, val_curve, steps_total, epochs_run, tracker, grad_norm_curve,
+    forensics)``. ``forensics`` is a `ForensicsRecorder` when the config sets ``forensics: true``
+    (session-0013's diagnostic run), else ``None`` -- the per-group gradient norms are only paid for
+    when a run asks for them.
 
     The guard has two nets, deliberately: the loss of the step just taken, and -- every
     `guard_every` steps -- the parameters themselves. A finite loss does not prove finite weights;
@@ -74,16 +83,25 @@ def _train_epochs(prepared, cfg: dict, *, label: str, started: float):
     lr = float(cfg.get("lr", 0.005))
     guard_every = int(cfg.get("guard_every", 200))
     optimizer = str(cfg.get("optimizer", "adam")).lower()
+    forensics_enabled = bool(cfg.get("forensics", False))
 
     train, val = prepared.train_samples, prepared.val_samples
     # The v2 model reads this configuration's K; the EVAL SET was built with the main run's K.
     model = build_model(cfg)
-    adam = AdamState(betas=tuple(cfg.get("betas", (0.9, 0.999)))) if optimizer == "adam" else None
+    # Session-0013 F1: global-norm gradient clipping, when the config sets `max_grad_norm`.
+    max_grad_norm_raw = cfg.get("max_grad_norm")
+    max_grad_norm = float(max_grad_norm_raw) if max_grad_norm_raw is not None else None
+    adam = (
+        AdamState(betas=tuple(cfg.get("betas", (0.9, 0.999))), max_grad_norm=max_grad_norm)
+        if optimizer == "adam"
+        else None
+    )
 
     rng = random.Random(seed)
     val_curve: list[float] = [mean_loss_v2(model, val, history)]
     train_curve: list[float] = []
     grad_norms: list[float] = []
+    forensics = ForensicsRecorder() if forensics_enabled else None
     tracker = PlateauTracker(patience=patience, eps=eps, min_evals=min_evals)
     tracker.update(val_curve[-1])
     seen_total = 0
@@ -97,7 +115,16 @@ def _train_epochs(prepared, cfg: dict, *, label: str, started: float):
             sample = train[idx]
             x_hist = samples_matrix(sample, history)
             if adam is not None:
-                loss, norm = model.adam_step(sample.board, x_hist, sample.move, adam, lr)
+                if forensics is not None:
+                    # The diagnostic path needs the gradient OBJECT, not just its norm, so it takes
+                    # the same `gradients` the optimizer would and records the per-group split
+                    # before the update. Same arithmetic, one extra read.
+                    loss, grads = model.gradients(sample.board, x_hist, sample.move)
+                    norm = grad_norm(grads)
+                    forensics.record(seen_total + 1, grads, model, x_hist)
+                    adam.step(model, grads, lr)
+                else:
+                    loss, norm = model.adam_step(sample.board, x_hist, sample.move, adam, lr)
                 grad_norms.append(norm)
             else:
                 loss = model.train_step(sample.board, x_hist, sample.move, lr=lr)
@@ -126,14 +153,88 @@ def _train_epochs(prepared, cfg: dict, *, label: str, started: float):
             f"[smoke-train-v2:{label}] epoch {epochs_run} done: train={train_curve[-1]:.4f} "
             f"val={val_curve[-1]:.4f} best={tracker.best:.4f}"
         )
-        if tracker.update(val_curve[-1]):
+        plateau_now = tracker.update(val_curve[-1])
+        # Session-0013: a FINITE blow-up is a divergence too -- and it is checked BEFORE the plateau
+        # break. Order matters: session-0012's curve blew up while never improving on its first
+        # reading, so the plateau branch fired first and the divergence was never seen. A blow-up
+        # that also happens to stall is still a blow-up; divergence wins.
+        if tracker.diverged:
+            exc = DivergenceError(
+                f"validation loss diverged at epoch {epochs_run}: {val_curve[0]:.4f} -> "
+                f"{val_curve[-1]:.4f} (best {tracker.best:.4f}, factor {DIVERGENCE_FACTOR}) -- "
+                "a finite blow-up is INVALID, never a finding (session-0013)"
+            )
+            # Session-0013 step 1: the diagnostic run's whole point is the trace of the blow-up, so
+            # the curves, the gradient norms and the per-group forensics ride on the exception into
+            # the FAILURE artifact. A divergence that discards its own evidence is useless.
+            exc.partial = {  # type: ignore[attr-defined]
+                "epochs_completed": epochs_run,
+                "steps": seen_total,
+                "train_loss_curve": train_curve,
+                "val_loss_curve": val_curve,
+                "grad_norm_curve": grad_norms,
+                "forensics": forensics.as_dict() if forensics is not None else None,
+            }
+            raise exc
+        if plateau_now:
             print(
                 f"[smoke-train-v2:{label}] PLATEAU after {epochs_run} epochs "
                 f"({tracker.since_improvement} evaluations without >{eps} improvement)"
             )
             break
 
-    return model, train_curve, val_curve, seen_total, epochs_run, tracker, grad_norms
+    return model, train_curve, val_curve, seen_total, epochs_run, tracker, grad_norms, forensics
+
+
+def _diverged_metrics(label: str, cfg: dict, exc: Exception, partial: dict, started: float) -> dict:
+    """The metrics record for a configuration that DIVERGED, in the factorial's tolerant mode.
+
+    It carries the same shape as a converged record (so the artifact table has one schema) plus the
+    divergence's own evidence: the curves, the gradient norms and the per-group forensics. The
+    ``convergence_verdict`` is ``DIVERGES`` and ``_diverged`` is True, which the driver uses to make
+    the run RED at the end -- a divergence is recorded, never hidden.
+    """
+    val_curve = list(partial.get("val_loss_curve") or [])
+    grad_norms = list(partial.get("grad_norm_curve") or [])
+    best = min(val_curve) if val_curve else float("nan")
+    return {
+        "label": label,
+        "config": {
+            "history": int(cfg.get("history", 8)),
+            "d_model": (cfg.get("model") or {}).get("d_model"),
+            "n_heads": (cfg.get("model") or {}).get("n_heads"),
+            "geometric_bias": (cfg.get("model") or {}).get("geometric_bias"),
+            "logit_norm": (cfg.get("model") or {}).get("logit_norm", False),
+            "optimizer": str(cfg.get("optimizer", "adam")).lower(),
+            "lr": float(cfg.get("lr", 0.005)),
+            "max_grad_norm": cfg.get("max_grad_norm"),
+        },
+        "model": {
+            "name": "numpy_history",
+            "val_loss_first": val_curve[0] if val_curve else None,
+            "val_loss_last": val_curve[-1] if val_curve else None,
+            "val_loss_plateau": best,
+            "val_loss_curve": val_curve,
+            "train_loss_curve": list(partial.get("train_loss_curve") or []),
+            "top1_accuracy": None,
+            "loss_decreasing": False,
+        },
+        "convergence": {
+            "steps": int(partial.get("steps", 0)),
+            "epochs": int(partial.get("epochs_completed", 0)),
+            "grad_norm_first": grad_norms[0] if grad_norms else None,
+            "grad_norm_last": grad_norms[-1] if grad_norms else None,
+            "grad_norm_max": max(grad_norms) if grad_norms else None,
+            "plateau_reached": False,
+        },
+        "legality": {"rate": None, "sampled": 0},
+        "verdict": {"status": "INVALID", "reason": str(exc)},
+        "convergence_verdict": {"status": "DIVERGES", "reason": str(exc)},
+        "forensics": partial.get("forensics"),
+        "elapsed_seconds": round(time.time() - started, 2),
+        "_diverged": True,
+        "_correctness": [],
+    }
 
 
 def train_configuration(
@@ -191,21 +292,39 @@ def train_configuration(
 
     try:
         try:
-            model, train_curve, val_curve, seen_total, epochs_run, tracker, grad_norms = (
-                _train_epochs(
-                    prepared, {**cfg, "optimizer": optimizer}, label=label, started=started
-                )
+            (
+                model,
+                train_curve,
+                val_curve,
+                seen_total,
+                epochs_run,
+                tracker,
+                grad_norms,
+                forensics,
+            ) = _train_epochs(
+                prepared, {**cfg, "optimizer": optimizer}, label=label, started=started
             )
         except DivergenceError as exc:
-            partial = {
-                "epochs_completed": 0,
-                "train_loss_curve": [],
-                "val_loss_curve": [],
-                "steps": 0,
-            }
+            partial = getattr(
+                exc,
+                "partial",
+                {
+                    "epochs_completed": 0,
+                    "train_loss_curve": [],
+                    "val_loss_curve": [],
+                    "steps": 0,
+                },
+            )
             write_failure(failure_dir / f"FAILURE-{label}.json", label, exc, partial)
             print(f"::error::[smoke-train-v2:{label}] DIVERGED -- {exc}", file=sys.stderr)
-            raise SystemExit(3) from exc
+            if not bool(cfg.get("tolerate_divergence", False)):
+                # The duel path: a diverged contender destroys the comparison, so the run is RED.
+                raise SystemExit(3) from exc
+            # The factorial path (session-0013): a divergence is the ANSWER to "does this fix
+            # converge?" -- it is recorded as DIVERGES and the factorial continues, so the other
+            # fixes still get their turn. The run still ends RED (the driver exits non-zero), so a
+            # divergence can never be read as a clean result.
+            return _diverged_metrics(label, cfg, exc, partial, started)
     finally:
         if original_factory is not None:
             globals()["build_model"] = original_factory
@@ -326,6 +445,11 @@ def train_configuration(
             "progress_marker": progress_marker,
             "progress_marker_reached": bool(top1 >= progress_marker),
         },
+        # Session-0013: the pre-registered CONVERGES / DIVERGES / BETWEEN rule, applied to this
+        # configuration's own curve. It is the session's question (does anything converge?), kept
+        # separate from the duel verdict so the two are never confused.
+        "convergence_verdict": convergence_verdict(val_curve, grad_norms, legality),
         "elapsed_seconds": round(elapsed, 2),
         "_correctness": correctness,
+        "_forensics": forensics.as_dict() if forensics is not None else None,
     }

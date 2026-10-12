@@ -37,7 +37,94 @@ class DivergenceError(RuntimeError):
     A *defect guard*, not a criterion -- it does not decide SUCCESS/DEAD/INCONCLUSIVE, it removes
     a state in which those words are meaningless (session-0010 pre-registration, the INVALID
     branch). `run()` fails the process so a diverged run cannot be read as a result.
+
+    Session-0013 extends the same guard to a **finite** divergence: a curve whose final validation
+    loss is more than `DIVERGENCE_FACTOR` times its own best is a blow-up even though every number
+    is finite, and it must fail the run exactly as a NaN does. Session-0012's run was the case in
+    point -- val loss 3.35 -> 25.2, all finite, reported `PLATEAUED`.
     """
+
+
+# A curve whose final validation loss exceeds this multiple of its own BEST is a divergence, not a
+# plateau. Recorded as a constant so the threshold is reproducible and cannot be tuned after the
+# fact. The value is chosen against the two real curves of session-0012: v1 rises 3.1663 -> 3.5408
+# (1.12x -- overfitting, NOT a blow-up) while v2 rises 3.3453 -> 25.1846 (7.53x -- a blow-up).
+DIVERGENCE_FACTOR = 2.0
+
+
+# The pre-registered convergence rule of session-0013 (LOG/session-0013-preregistration.md).
+# CONVERGES = final val loss < first AND grad norm never exceeds GRAD_EXPLOSION_FACTOR x its first
+#             AND legality is 100%; DIVERGES = final val loss > DIVERGENCE_FACTOR x the best;
+# anything else is recorded as facts, not a verdict. Recorded as constants so the thresholds are
+# reproducible and cannot be tuned after the shot.
+GRAD_EXPLOSION_FACTOR = 10.0
+
+
+def convergence_verdict(
+    val_curve: list[float],
+    grad_norms: list[float],
+    legality: float,
+    *,
+    divergence_factor: float = DIVERGENCE_FACTOR,
+    grad_factor: float = GRAD_EXPLOSION_FACTOR,
+) -> dict[str, object]:
+    """Apply the pre-registered CONVERGES / DIVERGES / BETWEEN rule to one configuration's run.
+
+    This is the session-0013 question made mechanical: does this configuration converge at all?
+    It is deliberately NOT the duel verdict -- a configuration that converges has earned a rematch
+    with v1 under its own pre-registration (0014), and one that does not has not.
+    """
+    if not val_curve:
+        return {"status": "BETWEEN", "reason": "no validation curve was recorded"}
+    first, final, best = val_curve[0], val_curve[-1], min(val_curve)
+    grad_first = grad_norms[0] if grad_norms else 0.0
+    grad_max = max(grad_norms) if grad_norms else 0.0
+    grad_ok = grad_first <= 0.0 or grad_max <= grad_factor * grad_first
+    loss_ok = final < first
+    if loss_ok and grad_ok and legality >= 1.0:
+        return {
+            "status": "CONVERGES",
+            "reason": (
+                f"final val loss {final:.4f} < first {first:.4f}; grad norm max {grad_max:.3g} "
+                f"<= {grad_factor}x first {grad_first:.3g}; legality 100%"
+            ),
+        }
+    if best > 0.0 and final > divergence_factor * best:
+        return {
+            "status": "DIVERGES",
+            "reason": (
+                f"final val loss {final:.4f} > {divergence_factor}x best {best:.4f} -- a blow-up"
+            ),
+        }
+    return {
+        "status": "BETWEEN",
+        "reason": (
+            f"neither converged nor diverged: final {final:.4f} vs first {first:.4f}, "
+            f"grad max {grad_max:.3g} vs {grad_factor}x first {grad_first:.3g}, legality {legality:.3f}"
+        ),
+    }
+
+
+def classify_curve(val_curve: list[float], *, factor: float = DIVERGENCE_FACTOR) -> str:
+    """The ONE function that decides PLATEAUED vs DIVERGED, shared by the detector and the guard.
+
+    A single implementation is deliberate: session-0012's defect was that the plateau detector and
+    the divergence guard disagreed about the same curve (the detector said `PLATEAUED`, the guard
+    said nothing). Two code paths for "what happened to this curve" is how that disagreement gets
+    in; one path is how it stays out.
+
+    Returns ``"DIVERGED"`` when the final value exceeds ``factor`` x the best value, else
+    ``"PLATEAUED"``. The comparison is against the BEST, not the first: v1's own curve rises from
+    its first reading (3.1663 -> 3.5408) because it overfits, and calling that a divergence would
+    be wrong -- the best is what the model actually achieved.
+    """
+    if not val_curve:
+        return "PLATEAUED"
+    best = min(val_curve)
+    final = val_curve[-1]
+    if best > 0.0 and final > factor * best:
+        return "DIVERGED"
+    return "PLATEAUED"
 
 
 def parameters_finite(model: NumpyHistoryModel) -> bool:
@@ -211,14 +298,18 @@ class PlateauTracker:
         self.best_eval = 0
         self.since_improvement = 0
         self.evals = 0
+        # The full curve, kept so the DIVERGED/PLATEAUED decision (session-0013) is made by the
+        # SAME function the guard uses, on the same numbers -- not re-derived from `best` alone.
+        self.values: list[float] = []
 
     def update(self, value: float) -> bool:
         """Record an evaluation; return True once patience has been exhausted."""
         self.evals += 1
         if not math.isfinite(value):
             raise DivergenceError(
-                f"a non-finite validation loss ({value}) — the instrument is gone"
+                f"a non-finite validation loss ({value}) -- the instrument is gone"
             )
+        self.values.append(value)
         if value < self.best - self.eps:
             self.best = value
             self.best_eval = self.evals
@@ -231,6 +322,18 @@ class PlateauTracker:
     def reached(self) -> bool:
         return self.evals >= self.min_evals and self.since_improvement >= self.patience
 
+    @property
+    def diverged(self) -> bool:
+        """True when the curve blew up (final > factor x best) -- the session-0013 status."""
+        return classify_curve(self.values) == "DIVERGED"
+
+    @property
+    def status(self) -> str:
+        """``DIVERGED`` / ``PLATEAUED`` / ``TRAINING`` -- the one word the detector and guard share."""
+        if self.diverged:
+            return "DIVERGED"
+        return "PLATEAUED" if self.reached else "TRAINING"
+
     def as_dict(self) -> dict[str, object]:
         return {
             "patience": self.patience,
@@ -241,14 +344,21 @@ class PlateauTracker:
             "best_eval": self.best_eval,
             "evals_without_improvement": self.since_improvement,
             "plateau_reached": self.reached,
+            "diverged": self.diverged,
+            "status": self.status,
+            "divergence_factor": DIVERGENCE_FACTOR,
         }
 
 
 __all__ = [
+    "DIVERGENCE_FACTOR",
+    "GRAD_EXPLOSION_FACTOR",
     "DivergenceError",
     "PlateauTracker",
     "accuracy_v2",
     "assert_finite",
+    "classify_curve",
+    "convergence_verdict",
     "correctness_tiny",
     "correctness_v2",
     "cross_ruler_baseline",

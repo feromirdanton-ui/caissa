@@ -1,0 +1,55 @@
+# smoke-train-forensics -- the short diagnostic run of session-0013 step 1.
+#
+# NOT a duel and NOT a verdict: this run exists only to record WHERE the v2 divergence starts. It
+# turns on `forensics: true`, which logs the per-group gradient norm, the embedding norms and
+# max|logit| at every step, so the first exploding group and the first exploding step are read off
+# the artifact. The budget is deliberately short -- the divergence is visible within a few hundred
+# steps, and a full 10k-step run would only re-confirm what the first hundred already show.
+#
+# The hypothesis under test (stated, not assumed): the bilinear (from, to) head explodes first,
+# because its multiplicative interaction produces unbounded logits. The report either confirms or
+# refutes it; it is an observation, not a verdict.
+
+scale: small
+lane: deep
+shards: data/shards
+metrics: data/qa/forensics/metrics-forensics.json
+ablations_out: data/qa/forensics/ablations-forensics.json
+
+history: 8
+window_history: 8
+
+plateau_patience: 5
+plateau_eps: 0.0001
+min_evals: 6
+max_epochs: 3            # short: the divergence shows within the first epoch
+
+model:
+  name: numpy_history
+  d_model: 256
+  n_heads: 8
+  geometric_bias: true
+
+val_fraction: 0.05
+seed: 0
+max_positions_to_load: 20000
+max_train_positions: 4000
+max_val_positions: 2000
+budget_minutes: 30
+
+optimizer: adam
+lr: 0.005
+betas: [0.9, 0.999]
+alpha: 0.05
+
+v1_reference: false
+v1_lr: 0.05
+
+guard_every: 200
+sample_moves: 200
+progress_marker: 0.30
+
+forensics: true          # the whole point of this run
+tolerate_divergence: true  # the divergence IS the observation -- record it, do not abort
+
+configurations: []       # no ablations: this is a single diagnostic trace

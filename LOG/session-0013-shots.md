@@ -24,8 +24,10 @@ never composed. `_pending_` is the honest state of a shot that has not happened 
 
 | # | session | workflow | run | head_sha | outcome | note |
 |---|---|---|---|---|---|---|
-| 0013-1 | 0013 | materialize | _pending_ | _pending_ | — | publishes the session-0013 instrument (the F0–F4 factorial, the divergence forensics, the DIVERGED status and its mutation controls) |
-| 0013-2 | 0013 | smoke-train-stability | _pending_ | _pending_ | — | **the shot** — fills in with its real URL in the moment of dispatch |
+| 0013-1 | 0013 | materialize | [38264348251](https://github.com/feromirdanton-ui/caissa/actions/runs/38264348251) | `ed3b865d` | success | published the session-0013 instrument (forensics, DIVERGED status, preregistration, LOG); `main` → `60f7a5fa` |
+| 0013-2 | 0013 | smoke-train-stability | [38264604554](https://github.com/feromirdanton-ui/caissa/actions/runs/38264604554) | `60f7a5fa` | **VOID** | the run started on the correct commit but died in 33 s: `ModuleNotFoundError: No module named 'scripts'` — running `python scripts/foo.py` puts `scripts/` on `sys.path`, not the repo root. No training happened, no artifact. Fixed by adding the repo root to `sys.path` in the script. |
+| 0013-3 | 0013 | materialize | [38265243196](https://github.com/feromirdanton-ui/caissa/actions/runs/38265243196) | `60f7a5fa` | success | published the import fix; `main` → `133a4ed1` |
+| 0013-4 | 0013 | smoke-train-stability | [38265476674](https://github.com/feromirdanton-ui/caissa/actions/runs/38265476674) | `133a4ed1` | **the shot** | head_sha verified against the polled `refs/heads/main` before the run was read. Artifact `smoke-train-stability-metrics`. Verdict in `LOG/session-0013.md`. |
 
 ## Notes
 

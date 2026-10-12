@@ -51,5 +51,6 @@ progress_marker: 0.30
 
 forensics: true          # the whole point of this run
 tolerate_divergence: true  # the divergence IS the observation -- record it, do not abort
+diagnostic: true         # a diagnostic's contract is a TRACE, not convergence: exit 0 on divergence
 
 configurations: []       # no ablations: this is a single diagnostic trace

@@ -1,0 +1,55 @@
+ablations_out: data/qa/ablations-stability.json
+alpha: 0.05
+betas:
+- 0.9
+- 0.999
+budget_minutes: 90
+configurations:
+- name: F1_grad_clip
+  overrides:
+    max_grad_norm: 1.0
+- name: F2_cosine_logits
+  overrides:
+    model:
+      logit_norm: true
+      logit_scale: 8.0
+- name: F3_sgd_0p01
+  overrides:
+    lr: 0.01
+    optimizer: sgd
+- name: F4_clip_and_cosine
+  overrides:
+    max_grad_norm: 1.0
+    model:
+      logit_norm: true
+      logit_scale: 8.0
+expected_divergence:
+- d256_k8
+guard_every: 200
+history: 8
+lane: deep
+lr: 0.005
+max_epochs: 20
+max_positions_to_load: 200000
+max_train_positions: 2000
+max_val_positions: 10000
+metrics: data/qa/metrics-stability.json
+min_evals: 6
+model:
+  d_model: 256
+  geometric_bias: true
+  n_heads: 8
+  name: numpy_history
+optimizer: adam
+plateau_eps: 0.0001
+plateau_patience: 5
+progress_marker: 0.3
+sample_moves: 1000
+scale: small
+seed: 0
+shards: data/shards
+tolerate_divergence: true
+v1_lr: 0.05
+v1_reference: false
+val_fraction: 0.05
+window_history: 8

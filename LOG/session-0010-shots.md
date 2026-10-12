@@ -67,8 +67,17 @@ readable in one file.
   the run's `head_sha` at the moment of dispatch (ref/head match; no VOID).
 - **What changed vs shot 1:** exactly one line — the `actions/setup-python` pin restored to the valid
   v5.3.0 SHA. The pre-registered criterion, thresholds, `lr`, and every other file are untouched.
-- **Status at dispatch:** in_progress
-- **Verdict:** PENDING — to be recorded verbatim in `LOG/session-0010.md` when the run completes.
+- **Ran:** 2026-10-12T06:38:35Z → 06:42:29Z (3 m 54 s) · all 14 steps green · conclusion `success`
+- **Artifact:** `smoke-train-v2-metrics` (3429 B, id `11731195076`) — `metrics-v2.json`,
+  `ablations-v2.json`, `processing.json`, `summary.md`
+- **Verdict (the rule's own output, verbatim):** **INCONCLUSIVE** — *"top-1 0.1150 beats the
+  baseline but is below 0.30"*. Restated in `LOG/session-0010.md`.
+- **This time the number is a MEASUREMENT:** val loss **3.4711 → 3.2071** (finite); the divergence
+  guard found **no** `FAILURE-*.json`; legality **1000/1000** — the exact state 0009 lacked.
+- **Numbers:** main top-1 **0.1150** vs set-local baseline **0.0150** · `no_geometry_bias` 0.0925
+  (−0.0225) · `no_history` 0.1000 (−0.0150) · v1 reference **0.1350** on the v2 set.
+- **Observed, not adjudicated (the thresholds do NOT move):** both organs cost top-1 when ablated,
+  so they do work; but at this scale v1 (0.1350) out-scores v2 (0.1150) and nothing reaches 0.30.
 
 ---
 

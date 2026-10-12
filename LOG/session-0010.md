@@ -103,14 +103,45 @@ the pre-registration, thresholds, and `lr` are untouched. Published byte-exact o
 - **Run:** https://github.com/feromirdanton-ui/caissa/actions/runs/38213524325
 - **Dispatched:** 2026-10-12T06:38:35Z · `head_sha=fd16b0913e80737a9ffd8f9c930da2e6ff792e15`
   (verified equal to the fix commit — no ref/dispatch race; no VOID). Identical inputs to shot 1.
-- **Status:** in flight.
+- **Ran:** 2026-10-12T06:38:35Z → 06:42:29Z (3 m 54 s) · **14/14 steps green** · conclusion `success`
+- **Artifact:** `smoke-train-v2-metrics` (3429 B, id `11731195076`) — 4 files (metrics, ablations,
+  processing QA, summary)
+- **Verdict (verbatim):** **INCONCLUSIVE** — *"top-1 0.1150 beats the baseline but is below 0.30"*
+  (see the Verdict section below; thresholds and `lr` untouched)
 
 ## Verdict
 
-**PENDING.** The pre-registration fixes the rule that the verdict is written here **verbatim, after**
-the run — never before, and never retouched. The shot is in flight; its outcome (SUCCESS / DEAD /
-INCONCLUSIVE / INVALID) will be appended to `LOG/session-0010-shots.md` and restated here when the
-run completes. Nothing about accuracy is claimed in this log.
+**INCONCLUSIVE** — the rule's own output, verbatim: *"top-1 0.1150 beats the baseline but is below
+0.30"*.
+
+The run: https://github.com/feromirdanton-ui/caissa/actions/runs/38213524325 (`head_sha=fd16b091`,
+**success**, 3 m 54 s, 14/14 steps green). Artifact `smoke-train-v2-metrics` (id `11731195076`).
+
+**This time the number is a measurement.** The reload's contract held, and the run says so itself:
+val loss **3.4711 → 3.2071** (finite), the divergence guard found **no** `FAILURE-*.json` ("the run did
+not diverge"), and legality is **1000/1000**. Session 0009 printed the same INCONCLUSIVE branch over
+`[NaN, NaN]`; here the curve is real. Same rule, an honest input.
+
+| configuration | top-1 | note |
+|---|---|---|
+| v1 reference (own set) | 0.1550 | retrained in-run (tiny, lr=0.05) |
+| v1 reference (v2 set) | 0.1350 | the same v1, on the v2 eval set |
+| **v2 — main** | **0.1150** | vs set-local baseline 0.0150 |
+| v2 — `no_geometry_bias` | 0.0925 | delta **−0.0225** |
+| v2 — `no_history` | 0.1000 | delta **−0.0150** |
+| set-local baseline | 0.0150 | most-common move 1:18 on the eval set itself |
+
+**Reading.** v2 clears the set-local baseline ≈7.7×, and *both* ablations drop top-1 — geometry and
+history each contribute — so the organs are doing work, not idling. But at this scale **v2 does not
+yet beat the v1 reference** (0.1150 < 0.1350 on the v2 set), and nothing approaches the 0.30 SUCCESS
+bar, so the verdict is INCONCLUSIVE — not SUCCESS, not DEAD. The thresholds and `lr` are exactly as
+pre-registered; nothing here was moved after the shot.
+
+## Status
+
+UNCHANGED as ever: the milestone package (v1 / v1@v2-set / v2 / both ablations, deltas, run URLs)
+awaits **ONE human signature**, and no tag is written until it exists. The signature is never written
+by the agent.
 
 ## Risks / open notes
 

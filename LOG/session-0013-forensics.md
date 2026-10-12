@@ -6,14 +6,16 @@ an observation, not a verdict, and it does not decide anything about v1.
 ## The run
 
 A short diagnostic (d256@K8, Adam `lr=0.005`, `forensics: true`, 4000 steps, 3-epoch cap). It is
-recorded in the append-only registry as **0013-2** with its run URL. The same trace is also produced
-inside the stability run, so the published artifact carries the same numbers.
+recorded in the append-only registry as **0013-4** (the run that carried the trace) with its run URL.
+The same trace is also produced inside the stability run, so the published artifact carries the same
+numbers.
 
 ## What was recorded
 
 At every step: the L2 norm of the gradient **per parameter group** (`encoder`, `mixer`, `head`,
 `geometry`), the L2 norm of each learned tensor (embedding norms), and `max|logit|`. Full per-step
-series in the artifact; the curve below is downsampled for display.
+series in the artifact; the numbers below are read from
+`forensics/metrics-forensics.json` (artifact `smoke-train-stability-metrics`, id `11754434343`).
 
 ## The result — the hypothesis is CONFIRMED
 
@@ -25,16 +27,17 @@ geometry scalar never exploded at all.
 
 | group | grad norm first | grad norm max | first explosion |
 |---|---|---|---|
-| **head** | 0.5344 | **1530** | **step 3** |
-| encoder | 0.4133 | 1940 | step 4 |
-| mixer | 0.552 | 1560 | step 4 |
-| geometry | 1.62 | 3.403 | — (never) |
+| **head** | 0.5344 | **2217.64** | **step 3** |
+| encoder | 0.4133 | 2171.55 | step 4 |
+| mixer | 0.5520 | 915.18 | step 4 |
+| geometry | 1.6202 | 3.4034 | — (never) |
 
-**`max|logit|` went 2.12 → 794.7, peaking at 2806.69.** The logits are unbounded, exactly as the
-hypothesis said. The embedding norms ran away in step: `w_mix` 21.48 → 223.3, `w_enc` 19.58 → 114.4,
-`head_from` 11.16 → 62.67, `head_to` 11.15 → 61.61 — while `geom_scale` *shrank* (1.0 → 0.837).
+**`max|logit|` went 2.1207 → 2408.89, peaking at 4261.97.** The logits are unbounded, exactly as the
+hypothesis said. The embedding norms ran away in step: `w_mix` 21.4818 → 182.3440, `w_enc`
+19.5768 → 95.7407, `head_from` 11.1574 → 48.9513, `head_to` 11.1505 → 48.8306 — while `geom_scale`
+*shrank* (1.0 → 0.9425).
 
-Validation loss: **3.3722 → 24.9823** — a 7.4× blow-up, and the DIVERGED status fires (final > 2×
+Validation loss: **3.3722 → 25.1684** — a 7.46× blow-up, and the DIVERGED status fires (final > 2×
 best). The failure is fast: the whole thing is visible within the first ~100 steps.
 
 ## The reading

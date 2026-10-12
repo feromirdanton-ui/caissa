@@ -323,11 +323,15 @@ def run(config_path: str) -> dict:
             f"({', '.join(diverged_labels)}) -- recorded as the observation; "
             f"expected={sorted(expected)} unexpected={unexpected}"
         )
+
+    def _fmt(value: object) -> str:
+        return "n/a" if value is None else f"{value:.4f}"
+
     print(
-        f"[smoke-train-v2] MAIN d256_k8: val loss {main['model']['val_loss_first']:.4f} -> "
-        f"{main['model']['val_loss_last']:.4f} (plateau {main['model']['val_loss_plateau']:.4f}) | "
-        f"top-1 {main['model']['top1_accuracy']:.4f} vs set-local baseline "
-        f"{main['baseline']['val_accuracy']:.4f} | legality "
+        f"[smoke-train-v2] MAIN d256_k8: val loss {_fmt(main['model']['val_loss_first'])} -> "
+        f"{_fmt(main['model']['val_loss_last'])} (plateau {_fmt(main['model']['val_loss_plateau'])}) | "
+        f"top-1 {_fmt(main['model']['top1_accuracy'])} vs set-local baseline "
+        f"{_fmt(main['baseline']['val_accuracy'])} | legality "
         f"{main['legality']['legal']}/{main['legality']['sampled']} | "
         f"DUEL: {main['duel_verdict']['status']}"
     )

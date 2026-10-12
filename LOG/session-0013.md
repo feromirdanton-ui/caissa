@@ -44,12 +44,12 @@ follow at step 4; the geometry scalar never explodes.
 
 | group | grad norm first | grad norm max | first explosion |
 |---|---|---|---|
-| **head** | 0.5344 | **1530** | **step 3** |
-| encoder | 0.4133 | 1940 | step 4 |
-| mixer | 0.552 | 1560 | step 4 |
-| geometry | 1.62 | 3.403 | — (never) |
+| **head** | 0.5344 | **2217.64** | **step 3** |
+| encoder | 0.4133 | 2171.55 | step 4 |
+| mixer | 0.5520 | 915.18 | step 4 |
+| geometry | 1.6202 | 3.4034 | — (never) |
 
-`max|logit|` went **2.12 → 794.7, peaking at 2806.69** — the logits are unbounded, exactly as the
+`max|logit|` went **2.1207 → 2408.89, peaking at 4261.97** — the logits are unbounded, exactly as the
 hypothesis said. The reading: the divergence is the head's **unbounded logits**, not a learning-rate
 or geometry accident. A symptom dampener (clipping) should not be enough; the cause fix is to bound
 the logits themselves.

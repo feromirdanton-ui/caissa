@@ -5,4 +5,174 @@ test is deterministic and needs no network. It proves the *machinery*: shards ->
 split by game -> train -> metrics -> pre-registered verdict, plus the two ablations running from the
 same split and reporting a delta each.
 
-It does NOT claim chess strength, and the fixture's accuracy is meaninglÁ•ÍÌ…Ì„É•ÍÕ±Ð€´´„Íµ…±°)™¥áÑÕÉ”½˜ÑÝ¼½Á•¹¥¹œ±¥¹•Ì¥ÌÍ•Á…É…‰±”°Í¼Ñ½À´ÄÍ…ÑÕÉ…Ñ•Ì¸Q¡”…ÍÍ•ÉÑ¥½¹Ì…É”Ñ¡•É•™½É”…‰½ÕÐ)ÁÉ½Á•ÉÑ¥•ÌÑ¡…ÐµÕÍÐ¡½±€¡±•…±¥Ñä°…ÉÑ¥™…ÑÌ°‘•±Ñ…Ì°ÍÁ±¥Ð¥¹Ñ•É¥Ñä¤°¹•Ù•È…‰½ÕÐ„¹Õµ‰•ÈÑ¡…Ð)½¹±äÑ¡”É•…°ÉÕ¸…¸ÁÉ½‘Õ”¸()Q¡”‘¥Ù•É•¹”Õ…É€´´Ñ¡”¹•Ü%9Y1%‰É…¹ ½˜Í•ÍÍ¥½¸´ÀÀÄÀ€´´¥ÌÑ•ÍÑ•¥¸)Ñ•ÍÑ}Íµ½­•}ÑÉ…¥¹}ØÉ}Õ…É¹Áå€°Ý¡¥ …ÉÉ¥•Ì¥ÑÌ½Ý¸µÕÑ…Ñ¥½¸½¹ÑÉ½°¸(ˆˆˆ()™É½´}}™ÕÑÕÉ•}|¥µÁ½ÉÐ…¹¹½Ñ…Ñ¥½¹Ì()¥µÁ½ÉÐ©Í½¸)™É½´Á…Ñ¡±¥ˆ¥µÁ½ÉÐA…Ñ ()¥µÁ½ÉÐ¡•ÍÌ)¥µÁ½ÉÐÁåÑ•ÍÐ()™É½´…¥ÍÍ„¹Ñ•ÍÑ¥¹œ¹ØÉ}ÍÕÁÁ½ÉÐ¥µÁ½ÉÐµ…­•}½¹™¥œ°µ…­•}Í¡…É‘Ì)™É½´…¥ÍÍ„¹ÑÉ…¥¹¥¹œ¥µÁ½ÉÐÍµ½­•}ÑÉ…¥¹}ØÈ)™É½´…¥ÍÍ„¹ÑÉ…¥¹¥¹œ¹‘…Ñ…Í•Ð¥µÁ½ÉÐ‰Õ¥±‘}¡¥ÍÑ½Éå}Í…µÁ±•Ì°½Õ¹Ñ}Í¡½ÉÑ}…µ•Ì°±½…‘}…µ•Ì(()ÁåÑ•ÍÐ¹™¥áÑÕÉ” ¤)‘•˜Í¡…É‘Ì¡ÑµÁ}Á…Ñ èA…Ñ ¤€´øA…Ñ è(€€€É•ÑÕÉ¸µ…­•}Í¡…É‘Ì¡ÑµÁ}Á…Ñ ¤(()ÁåÑ•ÍÐ¹™¥áÑÕÉ” ¤)‘•˜½¹™¥œ¡ÑµÁ}Á…Ñ èA…Ñ °Í¡…É‘ÌèA…Ñ ¤€´øA…Ñ è(€€€É•ÑÕÉ¸µ…­•}½¹™¥œ¡ÑµÁ}Á…Ñ °Í¡…É‘Ì¤(()‘•˜Ñ•ÍÑ}Ù•ÉÑ¥…±}ØÉ}ÉÕ¹Í}…¹‘}ÍÑ…åÍ}±•…°¡½¹™¥œèA…Ñ ¤€´ø9½¹”è(€€€€ˆˆ‰Q¡”Ý¡½±”ØÈ½µÁ½Í¥Ñ¥½¸ÉÕ¹ÌìÍ…µÁ±¥¹œ¥Ì€ÄÀÀ”±•…°…¹Ñ¡”Ù•É‘¥Ð¥Ì½¹”½˜Ñ¡”™½ÕÈ¸ˆˆˆ(€€€µ•ÑÉ¥Ì€ôÍµ½­•}ÑÉ…¥¹}ØÈ¹ÉÕ¸¡ÍÑÈ¡½¹™¥œ¤¤((€€€…ÍÍ•ÉÐµ•ÑÉ¥Íl‰Í¡•µ„‰t€ôô€‰…¥ÍÍ„µÍµ½­”µÑÉ…¥¸µØÈµµ•ÑÉ¥Ì¼Äˆ(€€€€ŒQ¡”…Ñ”½Õ¹ÑÌ%MQ%9PÁ½Í¥Ñ¥½¹Ì€¡Ñ¡”™¥áÑÕÉ”É•Á•…ÑÌÁ½Í¥Ñ¥½¹Ì¤°…¹•Ù•Éä½¹”µÕÍÐ‰”±•…°¸(€€€…ÍÍ•ÉÐµ•ÑÉ¥Íl‰±•…±¥Ñä‰ul‰Í…µÁ±•‰t€øô€ÄÀ(€€€…ÍÍ•ÉÐ€ (€€€€€€€µ•ÑÉ¥Íl‰±•…±¥Ñä‰ul‰É…Ñ”‰t€ôô€Ä¸À(€€€€¤°€‰ÉÑ¥±”€ÄèÑ¡”µ…Í¬µÕÍÐµ…­”¥±±•…°µ½Ù•Ì¥µÁ½ÍÍ¥‰±”ˆ(€€€…ÍÍ•ÉÐµ•ÑÉ¥Íl‰Ù•É‘¥Ð‰ul‰ÍÑ…ÑÕÌ‰t¥¸ì‰MUMLˆ°€‰ˆ°€‰%9=91UM%Yˆ°€‰%9Y1%‰ô(€€€…ÍÍ•ÉÐµ•ÑÉ¥Íl‰‘…Ñ„‰ul‰ÑÉ…¥¹}Í…µÁ±•Ì‰t€ø€À(€€€…ÍÍ•ÉÐµ•ÑÉ¥Íl‰‘…Ñ„‰ul‰Ù…±}Í…µÁ±•Ì‰t€ø€À(€€€…ÍÍ•ÉÐµ•ÑÉ¥Íl‰µ½‘•°‰ul‰±½ÍÍ}‘•É•…Í¥¹œ‰t¥ÌQÉÕ”(()‘•˜Ñ•ÍÑ}‰½Ñ¡}…ÉÑ¥™…ÑÍ}…É•}ÝÉ¥ÑÑ•¹}…¹‘}Í•±™}‘•ÍÉ¥‰¥¹œ¡½¹™¥œèA…Ñ ¤€´ø9½¹”è(€€€€ˆˆ‰Q¡”µ•ÑÉ¥Ì…¹Ñ¡”…‰±…Ñ¥½¹Ì…É”ÑÝ¼™¥±•Ì½¸‘¥Í¬°‰½Ñ ½µÁ±•Ñ”•¹½Õ Ñ¼ÁÕ‰±¥Í ¸ˆˆˆ(€€€Íµ½­•}ÑÉ…¥¹}ØÈ¹ÉÕ¸¡ÍÑÈ¡½¹™¥œ¤¤((€€€µ•ÑÉ¥Ì€ô©Í½¸¹±½…‘Ì ¡½¹™¥œ¹Á…É•¹Ð€¼€‰Å„ˆ€¼€‰µ•ÑÉ¥ÌµØÈ¹©Í½¸ˆ¤¹É•…‘}Ñ•áÐ ¤¤(€€€…‰±…Ñ¥½¹Ì€ô©Í½¸¹±½…‘Ì ¡½¹™¥œ¹Á…É•¹Ð€¼€‰Å„ˆ€¼€‰…‰±…Ñ¥½¹ÌµØÈ¹©Í½¸ˆ¤¹É•…‘}Ñ•áÐ ¤¤((€€€…ÍÍ•ÉÐ±•¸¡µ•ÑÉ¥Íl‰µ½‘•°‰ul‰Ù…±}±½ÍÍ}ÕÉÙ”‰t¤€øô€È(€€€…ÍÍ•ÉÐ±•¸¡µ•ÑÉ¥Íl‰µ½‘•°‰ul‰ÑÉ…¥¹}±½ÍÍ}ÕÉÙ”‰t¤€øô€Ä(€€€…ÍÍ•ÉÐµ•ÑÉ¥Íl‰‰…Í•±¥¹”‰ul‰µ½Ù”‰t¹½Õ¹Ð ˆèˆ¤€ôô€Ä((€€€…ÍÍ•ÉÐ…‰±…Ñ¥½¹Íl‰Í¡•µ„‰t€ôô€‰…¥ÍÍ„µÍµ½­”µÑÉ…¥¸µØÈµ…‰±…Ñ¥½¹Ì¼Äˆ(€€€±…‰•±Ì€ôí…l‰±…‰•°‰t™½È„¥¸…‰±…Ñ¥½¹Íl‰…‰±…Ñ¥½¹Ì‰uô(€€€…ÍÍ•ÉÐ±…‰•±Ì€ôôì‰¹½}•½µ•ÑÉå}‰¥…Ìˆ°€‰¹½}¡¥ÍÑ½Éä‰ô(€€€™½È•¹ÑÉä¥¸…‰±…Ñ¥½¹Íl‰…‰±…Ñ¥½¹Ì‰tè(€€€€€€€€ŒÙ•Éä…‰±…Ñ¥½¸µÕÍÐ…ÉÉä„É•…°‘•±Ñ„Ù•ÉÍÕÌÑ¡”µ…¥¸ÉÕ¸€´´„µ¥ÍÍ¥¹œ‘•±Ñ„Ý½Õ±µ…­”(€€€€€€€€ŒÑ¡”…‰±…Ñ¥½¸Õ¹É•…‘…‰±”°Ý¡¥ ¥ÌÑ¡”Ý¡½±”Á½¥¹Ð½˜ÉÕ¹¹¥¹œ¥Ð¸(€€€€€€€…ÍÍ•ÉÐ€‰‘•±Ñ…}Ñ½ÀÅ}ÙÍ}µ…¥¸ˆ¥¸•¹ÑÉä(€€€€€€€…ÍÍ•ÉÐ•¹ÑÉål‰±•…±¥Ñä‰ul‰É…Ñ”‰t€ôô€Ä¸À(€€€€€€€…ÍÍ•ÉÐ•¹ÑÉål‰½¹™¥œ‰ul‰¡¥ÍÑ½Éä‰t€øô€À(()‘•˜Ñ•ÍÑ}…‰±…Ñ¥½¹}½Ù•ÉÉ¥‘•Í}…ÑÕ…±±å}¡…¹•}Ñ¡•}½¹™¥ÕÉ…Ñ¥½¸¡½¹™¥œèA…Ñ ¤€´ø9½¹”è(€€€€ˆˆ‰Q¡”ÑÝ¼…‰±…Ñ¥½¹ÌµÕÍÐ‘¥™™•È™É½´Ñ¡”µ…¥¸ÉÕ¸¥¸•á…Ñ±äÑ¡”¥¹Ñ•¹‘•­¹½ˆ¸ˆˆˆ(€€€µ…¥¸€ôÍµ½­•}ÑÉ…¥¹}ØÈ¹ÉÕ¸¡ÍÑÈ¡½¹™¥œ¤¤(€€€…‰±…Ñ¥½¹Ì€ô©Í½¸¹±½…‘Ì ¡½¹™¥œ¹Á…É•¹Ð€¼€‰Å„ˆ€¼€‰…‰±…Ñ¥½¹ÌµØÈ¹©Í½¸ˆ¤¹É•…‘}Ñ•áÐ ¤¤(€€€‰å}±…‰•°€ôí…l‰±…‰•°‰tè„™½È„¥¸…‰±…Ñ¥½¹Íl‰…‰±…Ñ¥½¹Ì‰uô((€€€…ÍÍ•ÉÐ‰å}±…‰•±l‰¹½}•½µ•ÑÉå}‰¥…Ì‰ul‰½¹™¥œ‰ul‰•½µ•ÑÉ¥}‰¥…Ì‰t¥Ì…±Í”(€€€…ÍÍ•ÉÐµ…¥¹l‰½¹™¥œ‰ul‰•½µ•ÑÉ¥}‰¥…Ì‰t¥ÌQÉÕ”((€€€…ÍÍ•ÉÐ‰å}±…‰•±l‰¹½}¡¥ÍÑ½Éä‰ul‰½¹™¥œ‰ul‰¡¥ÍÑ½Éä‰t€ôô€À(€€€…ÍÍ•ÉÐµ…¥¹l‰½¹™¥œ‰ul‰¡¥ÍÑ½Éä‰t€ôô€Ð(()‘•˜Ñ•ÍÑ}¡¥ÍÑ½Éå}Ý¥¹‘½ÝÍ}‘½}¹½Ñ}É½ÍÍ}…}…µ•}‰½Õ¹‘…Éä¡Í¡…É‘ÌèA…Ñ ¤€´ø9½¹”è(€€€€ˆˆ‰Ù•ÉäÝ¥¹‘½ÜµÕÍÐ½µ”™É½´=9…µ”è„±•…­•ÁÉ•‘••ÍÍ½ÈÝ½Õ±‰”„‘¥™™•É•¹Ð…µ”Ìµ½Ù”¸ˆˆˆ(€€€…µ•Ì€ô±½…‘}…µ•Ì¡Í¡…É‘Ì°µ…á}Á½Í¥Ñ¥½¹ÌôÄÁ|ÀÀÀ°µ¥¹}µ½Ù•ÌôÈ¤(€€€Í…µÁ±•Ì€ô‰Õ¥±‘}¡¥ÍÑ½Éå}Í…µÁ±•Ì¡…µ•Ì°¡¥ÍÑ½ÉäôÐ¤(€€€…ÍÍ•ÉÐÍ…µÁ±•Ì°€‰Ñ¡”™¥áÑÕÉ”ÁÉ½‘Õ•¹¼¡¥ÍÑ½ÉäÝ¥¹‘½ÝÌˆ(€€€€ŒÙ•Éä‰½…É¥¸„Ý¥¹‘½ÜµÕÍÐ‰”É•…¡…‰±”‰äÉ•Á±…å¥¹œÑ¡”Í…µ”…µ”Ìµ½Ù•ÌìÑ¡”¡•…Á•ÍÐ(€€€€ŒÁÉ½áä¥ÌÑ¡…ÐÑ¡”Ý¥¹‘½ÜÌµ½Ù”ÍÑ…¬É½ÝÌ‰ä•á…Ñ±ä½¹”Á•ÈÍ±½Ð¸(€€€™½ÈÍ…µÁ±”¥¸Í…µÁ±•Ìè(€€€€€€€‘•ÁÑ¡Ì€ômˆ¹Á±ä ¤™½Èˆ¥¸Í…µÁ±”¹¡¥ÍÑ½Éåt(€€€€€€€…ÍÍ•ÉÐ‘•ÁÑ¡Ì€ôôÍ½ÉÑ•¡‘•ÁÑ¡Ì¤°€‰¡¥ÍÑ½ÉäÍ±½ÑÌ…É”¹½Ð¥¸¡É½¹½±½¥…°½É‘•Èˆ(€€€€€€€…ÍÍ•ÉÐ‘•ÁÑ¡Íl´Åt€´‘•ÁÑ¡ÍlÁt€ôô±•¸¡‘•ÁÑ¡Ì¤€´€Ä°€‰Ñ¡”Ý¥¹‘½ÜÍ­¥ÁÁ•½ÈÉ•Á•…Ñ•„Á±äˆ(()‘•˜Ñ•ÍÑ}…µ•Í}Ñ½½}Í¡½ÉÑ}™½É}…}Ý¥¹‘½Ý}…É•}½Õ¹Ñ•‘}¹½Ñ}Á…‘‘• ¤€´ø9½¹”è(€€€€ˆˆ‰…µ”Í¡½ÉÑ•ÈÑ¡…¸,¬Ä½¹ÑÉ¥‰ÕÑ•Ì¹½Ñ¡¥¹œ…¹¥Ì½Õ¹Ñ•€´´¹•Ù•ÈÁ…‘‘•Ý¥Ñ „™…­”‰½…É¸ˆˆˆ(€€€…µ•Ì€ôl(€€€€€€€l¡¡•ÍÌ¹	½…É ¤°¡•ÍÌ¹5½Ù”¹™É½µ}Õ¤ ‰”É”Ðˆ¤¥t°€€Œ€ÄÁ½Í¥Ñ¥½¸°…¹¹½Ð™¥±°„,ôÐÝ¥¹‘½Ü(€€€€€€€l¡¡•ÍÌ¹	½…É ¤°¡•ÍÌ¹5½Ù”¹™É½µ}Õ¤ ‰ÉÐˆ¤¥t€¨€ÄÀ°€€Œ±½¹œ•¹½Õ (€€€t(€€€…ÍÍ•ÉÐ½Õ¹Ñ}Í¡½ÉÑ}…µ•Ì¡…µ•Ì°¡¥ÍÑ½ÉäôÐ¤€ôô€Ä(€€€Í…µÁ±•Ì€ô‰Õ¥±‘}¡¥ÍÑ½Éå}Í…µÁ±•Ì¡…µ•Ì°¡¥ÍÑ½ÉäôÐ¤(€€€…ÍÍ•ÉÐ…±°¡±•¸¡Ì¹¡¥ÍÑ½Éä¤€ôô€Ô™½ÈÌ¥¸Í…µÁ±•Ì¤(()‘•˜Ñ•ÍÑ}µ¥ÍÍ¥¹}Í¡…É‘Í}…É•}…}±½Õ‘}™…¥±ÕÉ”¡ÑµÁ}Á…Ñ èA…Ñ ¤€´ø9½¹”è(€€€¥µÁ½ÉÐå…µ°((€€€™œ€ôÑµÁ}Á…Ñ €¼€‰•µÁÑä¹å…µ°ˆ(€€€™œ¹ÝÉ¥Ñ•}Ñ•áÐ (€€€€€€€å…µ°¹Í…™•}‘ÕµÀ¡ì‰Í¡…É‘ÌˆèÍÑÈ¡ÑµÁ}Á…Ñ €¼€‰¹½Á”ˆ¤°€‰µ•ÑÉ¥ÌˆèÍÑÈ¡ÑµÁ}Á…Ñ €¼€‰´¹©Í½¸ˆ¥ô¤(€€€€¤(€€€Ý¥Ñ ÁåÑ•ÍÐ¹É…¥Í•Ì¡MåÍÑ•µá¥Ð¤è(€€€€€€€Íµ½­•}ÑÉ…¥¹}ØÈ¹ÉÕ¸¡ÍÑÈ¡™œ¤¤(()‘•˜Ñ•ÍÑ}¥¹Ù…±¥‘}±•…±¥Ñå}™…¥±Í}Ñ¡•}ÉÕ¸¡µ½¹­•åÁ…Ñ èÁåÑ•ÍÐ¹5½¹­•åA…Ñ °½¹™¥œèA…Ñ ¤€´ø9½¹”è(€€€€ˆˆ‰±•…±¥Ñä±•…¬µ…­•ÌÑ¡”ÉÕ¸%9Y1%…¹Ñ¡”1$•á¥ÑÌ¹½¸µé•É¼€´´„‘•™•Ð°¹½Ð„™¥¹‘¥¹œ¸ˆˆˆ(€€€™É½´…¥ÍÍ„¹µ½‘•°¹¹ÕµÁå}¡¥ÍÑ½Éä¥µÁ½ÉÐ9ÕµÁå!¥ÍÑ½Éå5½‘•°((€€€‘•˜±•…­ä¡Í•±˜°‰½…É°á}¡¥ÍÐ¤è€€Œ¹½Å„è98ÀÀÄ°98ÈÀÈ€´Ñ•ÍÐ‘½Õ‰±”(€€€€€€€™½È™É´¥¸¡•ÍÌ¹MEUILè(€€€€€€€€€€€™½ÈÑ¼¥¸¡•ÍÌ¹MEUILè(€€€€€€€€€€€€€€€…¹‘¥‘…Ñ”€ô¡•ÍÌ¹5½Ù”¡™É´°Ñ¼¤(€€€€€€€€€€€€€€€¥˜…¹‘¥‘…Ñ”¹½Ð¥¸‰½…É¹±•…±}µ½Ù•Ìè(€€€€€€€€€€€€€€€€€€€É•ÑÕÉ¸…¹‘¥‘…Ñ”(€€€€€€€É…¥Í”ÍÍ•ÉÑ¥½¹ÉÉ½È ‰¹¼¥±±•…°µ½Ù”•á¥ÍÑÌ™½ÈÑ¡¥Ì‰½…Éˆ¤((€€€€ŒQ¡”ÉÑ¥±”€Ä…Ñ”Á±…åÌÑ¡”Á½±¥äÌÑ½À´Äµ½Ù”°Í¼Ñ¡…Ð¥ÌÑ¡”Í•…´Ñ¼‰É•…¬¸(€€€µ½¹­•åÁ…Ñ ¹Í•Ñ…ÑÑÈ¡9ÕµÁå!¥ÍÑ½Éå5½‘•°°€‰…Éµ…á}µ½Ù”ˆ°±•…­ä¤(€€€…ÍÍ•ÉÐÍµ½­•}ÑÉ…¥¹}ØÈ¹µ…¥¸¡lˆ´µ½¹™¥œˆ°ÍÑÈ¡½¹™¥œ¥t¤€ôô€Ä(()‘•˜Ñ•ÍÑ}•Ù…±}Í•Ñ}¥Í}¥‘•¹Ñ¥…±}…É½ÍÍ}µ…¥¹}…¹‘}…‰±…Ñ¥½¹Ì¡½¹™¥œèA…Ñ ¤€´ø9½¹”è(€€€€ˆˆ‰M•ÍÍ¥½¸´ÀÀÀäÁÉ•™±¥¡ÐèÑ¡”µ…¥¸ÉÕ¸…¹	=Q …‰±…Ñ¥½¹Ì…É”Í½É•½¸Ñ¡”M5Á½Í¥Ñ¥½¹Ì¸((€€€Q¡”½¹™½Õ¹‘•ÈÑ¡¥ÌÁ¥¹Ìè¹½}¡¥ÍÑ½Éå€Í•ÑÌ,ôÀ°…¹¥˜Ñ¡”Ý¥¹‘½ÜÝ•É”É•‰Õ¥±Ð…Ð,ôÀÑ¡”(€€€…‰±…Ñ¥½¸Ý½Õ±‰”•Ù…±Õ…Ñ•½¸„1IHÍ•Ð€¡Á±ä€øô€À¤Ñ¡…¸Ñ¡”µ…¥¸ÉÕ¸€¡Á±ä€øô€Ð¤€´´Í¼„(€€€Ñ½À´Ä‘•±Ñ„Ý½Õ±µ¥àÑ¡”½µÁ½¹•¹ÐÌ•™™•ÐÝ¥Ñ „¡…¹”½˜•Ù…°Í•Ð¸Ý¥¹‘½Ý}¡¥ÍÑ½Éå€(€€€­••ÁÌÑ¡”µ…¥¸ÉÕ¸Ì,™½È•Ù•Éä½¹™¥ÕÉ…Ñ¥½¸°Í¼Ñ¡”½Õ¹ÑÌµÕÍÐµ…Ñ •á…Ñ±ä¸(€€€€ˆˆˆ(€€€µ…¥¸€ôÍµ½­•}ÑÉ…¥¹}ØÈ¹ÉÕ¸¡ÍÑÈ¡½¹™¥œ¤¤(€€€…‰±…Ñ¥½¹Ì€ô©Í½¸¹±½…‘Ì ¡½¹™¥œ¹Á…É•¹Ð€¼€‰Å„ˆ€¼€‰…‰±…Ñ¥½¹ÌµØÈ¹©Í½¸ˆ¤¹É•…‘}Ñ•áÐ ¤¤(€€€‰å}±…‰•°€ôí…l‰±…‰•°‰tè„™½È„¥¸…‰±…Ñ¥½¹Íl‰…‰±…Ñ¥½¹Ì‰uô((€€€™½È±…‰•°¥¸€ ‰¹½}•½µ•ÑÉå}‰¥…Ìˆ°€‰¹½}¡¥ÍÑ½Éäˆ¤è(€€€€€€€…ÍÍ•ÉÐ€ (€€€€€€€€€€€‰å}±…‰•±m±…‰•±ul‰‘…Ñ„‰ul‰Ù…±}Í…µÁ±•Ì‰t€ôôµ…¥¹l‰‘…Ñ„‰ul‰Ù…±}Í…µÁ±•Ì‰t(€€€€€€€€¤°˜‰í±…‰•±ôÝ…ÌÍ½É•½¸„‘¥™™•É•¹Ð•Ù…°Í•ÐÑ¡…¸Ñ¡”µ…¥¸ÉÕ¸ˆ(€€€€€€€…ÍÍ•ÉÐ‰å}±…‰•±m±…‰•±ul‰‘…Ñ„‰ul‰Ù…±}…µ•Ì‰t€ôôµ…¥¹l‰‘…Ñ„‰ul‰Ù…±}…µ•Ì‰t((€€€€ŒQ¡”,ôÀ…‰±…Ñ¥½¸µÕÍÐÍÑ¥±°I„Í¥¹±”‰½…É€¡¥ÑÌ¥¹ÁÕÐÍ¡É…¹¬¤Ý¡¥±”Ñ¡”•Ù…°Í•Ð‘¥¹½Ð¸(€€€…ÍÍ•ÉÐ‰å}±…‰•±l‰¹½}¡¥ÍÑ½Éä‰ul‰½¹™¥œ‰ul‰¡¥ÍÑ½Éä‰t€ôô€À(€€€…ÍÍ•ÉÐµ…¥¹l‰½¹™¥œ‰ul‰¡¥ÍÑ½Éä‰t€ôô€Ð(()‘•˜Ñ•ÍÑ}ØÅ}É•™•É•¹•}¥Í}É•ÑÉ…¥¹•‘}…¹‘}Í½É•‘}½¹}‰½Ñ¡}Í•ÑÌ¡½¹™¥œèA…Ñ ¤€´ø9½¹”è(€€€€ˆˆ‰M•ÍÍ¥½¸´ÀÀÄÀ¥Ñ•´€ÔèØÄ¥ÌÉ•ÑÉ…¥¹•¥¸Ñ¡”Í…µ”ÉÕ¸…¹Í½É•½¸	=Q •Ù…°Í•ÑÌ¸((€€€Q¡”ØÄ´ùØÈ½µÁ…É¥Í½¸¥Ì½¹±ä¡½¹•ÍÐ¥˜‰½Ñ µ½‘•±Ì…É”µ•…ÍÕÉ•Ý¥Ñ Ñ¡”Í…µ”ÉÕ±•È°Í¼Ñ¡”(€€€…ÉÑ¥™…ÐµÕÍÐ…ÉÉäØÅ}…Ñ}ØÉ}Í•Ñ€…±½¹Í¥‘”ØÅ}…Ñ}ØÅ}Í•Ñ€¸(€€€€ˆˆˆ(€€€µ•ÑÉ¥Ì€ôÍµ½­•}ÑÉ…¥¹}ØÈ¹ÉÕ¸¡ÍÑÈ¡½¹™¥œ¤¤(€€€ØÄ€ôµ•ÑÉ¥Íl‰ØÅ}É•™•É•¹”‰t((€€€…ÍÍ•ÉÐØÅl‰±…‰•°‰t€ôô€‰ØÅ}É•™•É•¹”ˆ(€€€…ÍÍ•ÉÐØÅl‰µ½‘•°‰t€ôô€‰¹ÕµÁå}Ñ¥¹äˆ(€€€…ÍÍ•ÉÐØÅl‰ØÅ}…Ñ}ØÅ}Í•Ð‰ul‰Ù…±}Á½Í¥Ñ¥½¹Ì‰t€ø€À(€€€…ÍÍ•ÉÐØÅl‰ØÅ}…Ñ}ØÉ}Í•Ð‰ul‰Ù…±}Á½Í¥Ñ¥½¹Ì‰t€ôôµ•ÑÉ¥Íl‰‘…Ñ„‰ul‰Ù…±}Í…µÁ±•Ì‰t(
+It does NOT claim chess strength, and the fixture's accuracy is meaningless as a result -- a small
+fixture of two opening lines is separable, so top-1 saturates. The assertions are therefore about
+properties that must hold (legality, artifacts, deltas, split integrity), never about a number that
+only the real run can produce.
+
+The divergence guard -- the new INVALID branch of session-0010 -- is tested in
+`test_smoke_train_v2_guard.py`, which carries its own mutation control.
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import chess
+import pytest
+
+from caissa.testing.v2_support import make_config, make_shards
+from caissa.training import smoke_train_v2
+from caissa.training.dataset import build_history_samples, count_short_games, load_games
+
+
+@pytest.fixture()
+def shards(tmp_path: Path) -> Path:
+    return make_shards(tmp_path)
+
+
+@pytest.fixture()
+def config(tmp_path: Path, shards: Path) -> Path:
+    return make_config(tmp_path, shards)
+
+
+def test_vertical_v2_runs_and_stays_legal(config: Path) -> None:
+    """The whole v2 composition runs; sampling is 100% legal and the verdict is one of the four."""
+    metrics = smoke_train_v2.run(str(config))
+
+    assert metrics["schema"] == "caissa-smoke-train-v2-metrics/1"
+    # The gate counts DISTINCT positions (the fixture repeats positions), and every one must be legal.
+    assert metrics["legality"]["sampled"] >= 10
+    assert (
+        metrics["legality"]["rate"] == 1.0
+    ), "Article 1: the mask must make illegal moves impossible"
+    assert metrics["verdict"]["status"] in {"SUCCESS", "DEAD", "INCONCLUSIVE", "INVALID"}
+    assert metrics["data"]["train_samples"] > 0
+    assert metrics["data"]["val_samples"] > 0
+    assert metrics["model"]["loss_decreasing"] is True
+
+
+def test_both_artifacts_are_written_and_self_describing(config: Path) -> None:
+    """The metrics and the ablations are two files on disk, both complete enough to publish."""
+    smoke_train_v2.run(str(config))
+
+    metrics = json.loads((config.parent / "qa" / "metrics-v2.json").read_text())
+    ablations = json.loads((config.parent / "qa" / "ablations-v2.json").read_text())
+
+    assert len(metrics["model"]["val_loss_curve"]) >= 2
+    assert len(metrics["model"]["train_loss_curve"]) >= 1
+    assert metrics["baseline"]["move"].count(":") == 1
+
+    assert ablations["schema"] == "caissa-smoke-train-v2-ablations/1"
+    labels = {a["label"] for a in ablations["ablations"]}
+    assert labels == {"no_geometry_bias", "no_history"}
+    for entry in ablations["ablations"]:
+        # Every ablation must carry a real delta versus the main run -- a missing delta would make
+        # the ablation unreadable, which is the whole point of running it.
+        assert "delta_top1_vs_main" in entry
+        assert entry["legality"]["rate"] == 1.0
+        assert entry["config"]["history"] >= 0
+
+
+def test_ablation_overrides_actually_change_the_configuration(config: Path) -> None:
+    """The two ablations must differ from the main run in exactly the intended knob."""
+    main = smoke_train_v2.run(str(config))
+    ablations = json.loads((config.parent / "qa" / "ablations-v2.json").read_text())
+    by_label = {a["label"]: a for a in ablations["ablations"]}
+
+    assert by_label["no_geometry_bias"]["config"]["geometric_bias"] is False
+    assert main["config"]["geometric_bias"] is True
+
+    assert by_label["no_history"]["config"]["history"] == 0
+    assert main["config"]["history"] == 4
+
+
+def test_history_windows_do_not_cross_a_game_boundary(shards: Path) -> None:
+    """Every window must come from ONE game: a leaked predecessor would be a different game's move."""
+    games = load_games(shards, max_positions=10_000, min_moves=2)
+    samples = build_history_samples(games, history=4)
+    assert samples, "the fixture produced no history windows"
+    # Every board in a window must be reachable by replaying the same game's moves; the cheapest
+    # proxy is that the window's move stack grows by exactly one per slot.
+    for sample in samples:
+        depths = [b.ply() for b in sample.history]
+        assert depths == sorted(depths), "history slots are not in chronological order"
+        assert depths[-1] - depths[0] == len(depths) - 1, "the window skipped or repeated a ply"
+
+
+def test_games_too_short_for_a_window_are_counted_not_padded() -> None:
+    """A game shorter than K+1 contributes nothing and is counted -- never padded with a fake board."""
+    games = [
+        [(chess.Board(), chess.Move.from_uci("e2e4"))],  # 1 position, cannot fill a K=4 window
+        [(chess.Board(), chess.Move.from_uci("d2d4"))] * 10,  # long enough
+    ]
+    assert count_short_games(games, history=4) == 1
+    samples = build_history_samples(games, history=4)
+    assert all(len(s.history) == 5 for s in samples)
+
+
+def test_missing_shards_are_a_loud_failure(tmp_path: Path) -> None:
+    import yaml
+
+    cfg = tmp_path / "empty.yaml"
+    cfg.write_text(
+        yaml.safe_dump({"shards": str(tmp_path / "nope"), "metrics": str(tmp_path / "m.json")})
+    )
+    with pytest.raises(SystemExit):
+        smoke_train_v2.run(str(cfg))
+
+
+def test_invalid_legality_fails_the_run(monkeypatch: pytest.MonkeyPatch, config: Path) -> None:
+    """A legality leak makes the run INVALID and the CLI exits non-zero -- a defect, not a finding."""
+    from caissa.model.numpy_history import NumpyHistoryModel
+
+    def leaky(self, board, x_hist):  # noqa: ANN001, ANN202 - test double
+        for frm in chess.SQUARES:
+            for to in chess.SQUARES:
+                candidate = chess.Move(frm, to)
+                if candidate not in board.legal_moves:
+                    return candidate
+        raise AssertionError("no illegal move exists for this board")
+
+    # The Article 1 gate plays the policy's top-1 move, so that is the seam to break.
+    monkeypatch.setattr(NumpyHistoryModel, "argmax_move", leaky)
+    assert smoke_train_v2.main(["--config", str(config)]) == 1
+
+
+def test_eval_set_is_identical_across_main_and_ablations(config: Path) -> None:
+    """Session-0009 preflight: the main run and BOTH ablations are scored on the SAME positions.
+
+    The confounder this pins: `no_history` sets K=0, and if the window were rebuilt at K=0 the
+    ablation would be evaluated on a LARGER set (ply >= 0) than the main run (ply >= 4) -- so a
+    top-1 delta would mix the component's effect with a change of eval set. `window_history`
+    keeps the main run's K for every configuration, so the counts must match exactly.
+    """
+    main = smoke_train_v2.run(str(config))
+    ablations = json.loads((config.parent / "qa" / "ablations-v2.json").read_text())
+    by_label = {a["label"]: a for a in ablations["ablations"]}
+
+    for label in ("no_geometry_bias", "no_history"):
+        assert (
+            by_label[label]["data"]["val_samples"] == main["data"]["val_samples"]
+        ), f"{label} was scored on a different eval set than the main run"
+        assert by_label[label]["data"]["val_games"] == main["data"]["val_games"]
+
+    # The K=0 ablation must still READ a single board (its input shrank) while the eval set did not.
+    assert by_label["no_history"]["config"]["history"] == 0
+    assert main["config"]["history"] == 4
+
+
+def test_v1_reference_is_retrained_and_scored_on_both_sets(config: Path) -> None:
+    """Session-0010 item 5: v1 is retrained in the same run and scored on BOTH eval sets.
+
+    The v1->v2 comparison is only honest if both models are measured with the same ruler, so the
+    artifact must carry `v1_at_v2_set` alongside `v1_at_v1_set`.
+    """
+    metrics = smoke_train_v2.run(str(config))
+    v1 = metrics["v1_reference"]
+
+    assert v1["label"] == "v1_reference"
+    assert v1["model"] == "numpy_tiny"
+    assert v1["v1_at_v1_set"]["val_positions"] > 0
+    assert v1["v1_at_v2_set"]["val_positions"] == metrics["data"]["val_samples"]
